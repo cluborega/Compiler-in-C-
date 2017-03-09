@@ -55,6 +55,8 @@ class VarDecl : public Decl
     void PrintChildren(int indentLevel);
     Type *GetType() const { return type; }
 	
+	
+	Expr* GetAssignTo() const { return assignTo; }
 	void Emit();   // emit function
 };
 

@@ -70,8 +70,14 @@ void FnDecl::PrintChildren(int indentLevel) {
 }
 
 void VarDecl::Emit(){
-
+	llvm::Value* inst = NULL;
 	
+	/*
+	if(symtab->is_global()) {
+
+		symtab->add_decl(string(GetIdentifier()->GetName()), this, inst);
+	}
+	*/
 }
 
 void FnDecl::Emit() {
