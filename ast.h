@@ -41,16 +41,18 @@
 #include "location.h"
 #include <iostream>
 
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Value.h"
+// #include "llvm/IR/LLVMContext.h"
+// #include "llvm/IR/Module.h"
+// #include "llvm/IR/Constants.h"
+// #include "llvm/IR/Instructions.h"
 
 using namespace std;
 
 class SymbolTable;
 class MyStack;
 class FnDecl;
+class IRGenerator;
 
 class Node  {
   protected:
@@ -58,6 +60,8 @@ class Node  {
     Node *parent;
 
   public:
+    static IRGenerator* irgen;
+    static SymbolTable *symtab;
     Node(yyltype loc);
     Node();
     virtual ~Node() {}
@@ -72,14 +76,14 @@ class Node  {
     // subclasses should override PrintChildren() instead
     void Print(int indentLevel, const char *label = NULL); 
     virtual void PrintChildren(int indentLevel)  {}
-
-    virtual void Emit() {}
 	
-	static SymbolTable *symtab;
+
 	static MyStack *stk;
 	static int globalScopeIndex;
+    virtual void Emit() {}
 	
-	// llvm::Value* Emit() {}
+	//llvm::Value* Emit();
+};
    
 
 class Identifier : public Node 

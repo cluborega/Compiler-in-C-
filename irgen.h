@@ -24,6 +24,7 @@ class IRGenerator {
   public:
     IRGenerator();
     ~IRGenerator();
+    static IRGenerator Inst;
 
     llvm::Module   *GetOrCreateModule(const char *moduleID);
     llvm::LLVMContext *GetContext() const { return context; }

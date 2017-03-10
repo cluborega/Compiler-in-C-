@@ -55,9 +55,8 @@ class VarDecl : public Decl
     void PrintChildren(int indentLevel);
     Type *GetType() const { return type; }
 	
-	
 	Expr* GetAssignTo() const { return assignTo; }
-	llvm::Value* Emit();   // emit function
+	void Emit();   // emit function
 };
 
 class VarDeclError : public VarDecl
@@ -86,7 +85,7 @@ class FnDecl : public Decl
     Type *GetType() const { return returnType; }
     List<VarDecl*> *GetFormals() {return formals;}
 	
-	llvm::Value* Emit();
+	void Emit();
 };
 
 class FormalsError : public FnDecl

@@ -5,13 +5,9 @@
 #include "ast_decl.h"
 #include "ast_type.h"
 #include "ast_stmt.h"
-<<<<<<< HEAD
 #include "symtable.h"        
-=======
-#include "symtable.h"    
 
 #include "irgen.h"    
->>>>>>> 90b968c296dcc57e360f0a4e3db18ca8c58f26f0
          
 Decl::Decl(Identifier *n) : Node(*n->GetLocation()) {
     Assert(n != NULL);
@@ -73,24 +69,36 @@ void FnDecl::PrintChildren(int indentLevel) {
     if (body) body->Print(indentLevel+1, "(body) ");
 }
 
-<<<<<<< HEAD
-=======
-llvm::Value* VarDecl::Emit(){
+
+void VarDecl::Emit(){
+	// llvm::Value* val = NULL;
+	// llvm::Value* init = NULL;
+    Symbol sym;
+    char* name = this->GetIdentifier()->GetName();
+
+    // Symbol* symbol_f = symtab->tables[index]->find(name);
+    llvm::Module *module = irgen->GetOrCreateModule("foo.bc");
+    llvm::Type *type = irgen->GetType(this->GetType());
+    llvm::Twine *twine = new llvm::Twine(name);	
+    llvm::BasicBlock *bb = irgen->GetBasicBlock();
+
+	if (symtab->isGlobalScope()) {
+        llvm::GlobalVariable *variable = new llvm::GlobalVariable(module, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
+        sym.name = name;
+        sym.value = variable;
+        symtab->insert(sym);
+    }
+    else {  //if not global
+        llvm::AllocaInst *allocInst = new llvm::AllocaInst(type,*twine,bb);
+        sym.value = allocInst;
+        symtab->insert(sym);
+    }
+	//return val;
+}
+
+void FnDecl::Emit() {
 	llvm::Value* val = NULL;
 	llvm::Value* init = NULL;
 	
-	
-
-	
-	
-	return val;
+	//return val;
 }
-
-llvm::Value* FnDecl::Emit() {
-	llvm::Value* val = NULL;
-	llvm::Value* init = NULL;
-	
-	return val;
-}
-
->>>>>>> 90b968c296dcc57e360f0a4e3db18ca8c58f26f0

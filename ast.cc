@@ -10,8 +10,11 @@
 #include <stdio.h>  // printf
 
 SymbolTable *Node::symtab = new SymbolTable();
+IRGenerator *Node::irgen = new IRGenerator();
+
 int Node::globalScopeIndex = 0;
 MyStack * Node::stk = new MyStack;
+
 
 Node::Node(yyltype loc) {
     location = new yyltype(loc);

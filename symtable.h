@@ -81,6 +81,7 @@ class SymbolTable {
     Symbol *find(const char *name);
 
     bool isGlobalScope() const { return (tables.size() == 1); }
+    ScopedTable * currentScope(){ return tables.back(); }
 
     Type *returnType;
     bool noReturnFlag, funcFlag, breakFlag;

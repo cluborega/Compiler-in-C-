@@ -72,6 +72,29 @@ void StmtBlock::PrintChildren(int indentLevel) {
     stmts->PrintAll(indentLevel+1);
 }
 
+void StmtBlock::Emit() {
+    
+    //get the current scope
+    ScopedTable *currScope = symtab->currentScope();
+
+    for (int i=0; i < stmts->NumElements(); ++i) {
+        /* Returns a pointer to the terminator instruction that appears 
+          at the end of the BasicBlock. If there is no terminator instruction, 
+          or if the last instruction in the block is not a terminator, 
+          then a null pointer is returned.*/
+       // if(!IRGenerator::Inst.GetBasicBlock()->getTerminator())
+         //   break;
+        
+        stmts->Nth(i)->Emit();
+    }
+
+    if(symtab->noReturnFlag){
+        //TODO
+        //what to do when there is return?? or no return??
+
+    }
+}
+
 DeclStmt::DeclStmt(Decl *d) {
     Assert(d != NULL);
     (decl=d)->SetParent(this);
@@ -79,6 +102,10 @@ DeclStmt::DeclStmt(Decl *d) {
 
 void DeclStmt::PrintChildren(int indentLevel) {
     decl->Print(indentLevel+1);
+}
+
+void DeclStmt::Emit(){
+    decl->Emit();
 }
 
 ConditionalStmt::ConditionalStmt(Expr *t, Stmt *b) { 
