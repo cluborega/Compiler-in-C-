@@ -57,7 +57,7 @@ class VarDecl : public Decl
 	
 	
 	Expr* GetAssignTo() const { return assignTo; }
-	void Emit();   // emit function
+	llvm::Value* Emit();   // emit function
 };
 
 class VarDeclError : public VarDecl
@@ -86,7 +86,7 @@ class FnDecl : public Decl
     Type *GetType() const { return returnType; }
     List<VarDecl*> *GetFormals() {return formals;}
 	
-	void Emit();
+	llvm::Value* Emit();
 };
 
 class FormalsError : public FnDecl

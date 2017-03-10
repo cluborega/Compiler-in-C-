@@ -69,19 +69,21 @@ void FnDecl::PrintChildren(int indentLevel) {
     if (body) body->Print(indentLevel+1, "(body) ");
 }
 
-void VarDecl::Emit(){
-	llvm::Value* inst = NULL;
+llvm::Value* VarDecl::Emit(){
+	llvm::Value* val = NULL;
+	llvm::Value* init = NULL;
 	
-	/*
-	if(symtab->is_global()) {
+	
 
-		symtab->add_decl(string(GetIdentifier()->GetName()), this, inst);
-	}
-	*/
+	
+	
+	return val;
 }
 
-void FnDecl::Emit() {
+llvm::Value* FnDecl::Emit() {
+	llvm::Value* val = NULL;
+	llvm::Value* init = NULL;
 	
-	
+	return val;
 }
 
