@@ -67,9 +67,9 @@ class ScopedTable {
 };
    
 class SymbolTable {
-  std::vector<ScopedTable *> tables;
- 
+
   public:
+    vector<ScopedTable *> tables;  //changed it to public cant access from decl otherwise
     SymbolTable();
     ~SymbolTable();
 
@@ -81,6 +81,10 @@ class SymbolTable {
     Symbol *find(const char *name);
 
     bool isGlobalScope() const { return (tables.size() == 1); }
+
+    Type *returnType;
+    bool noReturnFlag, funcFlag, breakFlag;
+	
 };    
 
 class MyStack {

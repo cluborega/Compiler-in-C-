@@ -5,7 +5,7 @@
 *.core
 lex.yy.c 
 dpp.yy.c 
-
+p4exe
 
 core 
 *~ 

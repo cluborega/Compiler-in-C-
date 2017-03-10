@@ -16,6 +16,7 @@
 #include "ast.h"
 #include "list.h"
 #include "ast_expr.h"
+#include "llvm/IR/Value.h"
 
 class Type;
 class TypeQualifier;
@@ -53,6 +54,10 @@ class VarDecl : public Decl
     const char *GetPrintNameForNode() { return "VarDecl"; }
     void PrintChildren(int indentLevel);
     Type *GetType() const { return type; }
+	
+	
+	Expr* GetAssignTo() const { return assignTo; }
+	llvm::Value* Emit();   // emit function
 };
 
 class VarDeclError : public VarDecl
@@ -80,6 +85,8 @@ class FnDecl : public Decl
 
     Type *GetType() const { return returnType; }
     List<VarDecl*> *GetFormals() {return formals;}
+	
+	llvm::Value* Emit();
 };
 
 class FormalsError : public FnDecl

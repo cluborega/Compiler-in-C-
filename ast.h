@@ -41,6 +41,11 @@
 #include "location.h"
 #include <iostream>
 
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Instructions.h"
+
 using namespace std;
 
 class SymbolTable;
@@ -69,7 +74,12 @@ class Node  {
     virtual void PrintChildren(int indentLevel)  {}
 
     virtual void Emit() {}
-};
+	
+	static SymbolTable *symtab;
+	static MyStack *stk;
+	static int globalScopeIndex;
+	
+	// llvm::Value* Emit() {}
    
 
 class Identifier : public Node 

@@ -5,7 +5,13 @@
 #include "ast_decl.h"
 #include "ast_type.h"
 #include "ast_stmt.h"
+<<<<<<< HEAD
 #include "symtable.h"        
+=======
+#include "symtable.h"    
+
+#include "irgen.h"    
+>>>>>>> 90b968c296dcc57e360f0a4e3db18ca8c58f26f0
          
 Decl::Decl(Identifier *n) : Node(*n->GetLocation()) {
     Assert(n != NULL);
@@ -67,3 +73,24 @@ void FnDecl::PrintChildren(int indentLevel) {
     if (body) body->Print(indentLevel+1, "(body) ");
 }
 
+<<<<<<< HEAD
+=======
+llvm::Value* VarDecl::Emit(){
+	llvm::Value* val = NULL;
+	llvm::Value* init = NULL;
+	
+	
+
+	
+	
+	return val;
+}
+
+llvm::Value* FnDecl::Emit() {
+	llvm::Value* val = NULL;
+	llvm::Value* init = NULL;
+	
+	return val;
+}
+
+>>>>>>> 90b968c296dcc57e360f0a4e3db18ca8c58f26f0

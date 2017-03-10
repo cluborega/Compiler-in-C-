@@ -31,68 +31,13 @@ void ScopedTable::insert(Symbol &sym){
 	char* name = sym.name;
 	symbols.insert(std::pair<char*, Symbol>(name, sym));
 
-
-	//cout<<"\nbefore iterator\n"<<endl;
-        
-	//SymbolIterator it;
-	//it = symbols.end();
-	//it--;
-	//cout<<"\nafter segfault (?) iterator\n"<<endl;
-	
-	
-	
-	//if(it->first == sym.name){
-	//if (find(sym.name) != NULL){
-		//cout << "ScopedTable - insert conflict" << endl;
-	//	ReportError::DeclConflict(sym.decl, it->second.decl);
-
-		//cout << "\nin scopedTable -insert\n" << endl;
-		
-//		remove(sym);
-//		symbols[sym.name] = sym;
-
-//	}
-	
-	/*
-	//Symbol *s  = NULL;
-	//symbols.insert(s);
-	SymbolIterator it;
-	// SymbolIterator it;		
-	it = symbols.find(sym.name);
-	cout<<sym.name<<endl;
-
-	//if (find(sym.name) != NULL){
-	if(it != symbols.end()){
-		//cout << "ScopedTable - insert conflict" << endl;
-		
-		ReportError::DeclConflict(it->second.decl, sym.decl);
-
-		remove(sym);
-		symbols[sym.name] = sym;
-              		
-		//cout << "Insert ScopedTable = " << (&symbols[sym.name]) << endl;
-	}
-	*/
-	//else{
-		//cout << "inserted, no error\n"<<endl;
-
-	//}
-
 }
 
 void ScopedTable::remove(Symbol &sym){
-	//cout << "in symbols:: remove "<<endl;
-	//SymbolIterator it = symbols.find(sym.name);
 
-	//cout << "removing "<< sym.name << endl;
-	//if ( it != symbols.end() )
 	char* name = sym.name;
 	symbols.erase(name);
 
-	//else
-	//	cout << "remove from symbols map unsuccessful.. "<<endl;
-	//cout <<"erase successful"<<endl;
-	//}
 }
 
 // if it does not find it will return null
@@ -220,6 +165,7 @@ bool MyStack::insideLoop(){
 }
 
 bool MyStack::insideSwitch(){
+
 	if (!stmtStack.empty()){
 		//stmtStack.pop_back();
 		
@@ -228,5 +174,3 @@ bool MyStack::insideSwitch(){
 	
 	return false;
 }
-
-
