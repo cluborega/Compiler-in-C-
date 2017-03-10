@@ -6,6 +6,7 @@
 #include "ast_type.h"
 #include "ast_decl.h"
 #include "symtable.h"
+#include "irgen.h"
 #include <string.h> // strdup
 #include <stdio.h>  // printf
 

@@ -30,6 +30,8 @@ void Program::Emit() {
     // You can use this as a template and create Emit() function
     // for individual node to fill in the module structure and instructions.
     //
+   
+   /*
     IRGenerator irgen;
     llvm::Module *mod = irgen.GetOrCreateModule("Name_the_Module.bc");
 
@@ -56,6 +58,8 @@ void Program::Emit() {
 
     // write the BC into standard output
     llvm::WriteBitcodeToFile(mod, llvm::outs());
+
+    */
 
     //uncomment the next line to generate the human readable/assembly file
     //mod->dump();

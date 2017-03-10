@@ -76,20 +76,50 @@ void VarDecl::Emit(){
     Symbol sym;
     char* name = this->GetIdentifier()->GetName();
 
+    // auto *thistype = this->GetType();
+    // llvm::Type* llType = NULL;
+
     // Symbol* symbol_f = symtab->tables[index]->find(name);
-    llvm::Module *module = irgen->GetOrCreateModule("foo.bc");
-    llvm::Type *type = irgen->GetType(this->GetType());
+    // symbol_f.name;
+
+    llvm::Module *mod = irgen->GetOrCreateModule("foo.bc");
+    llvm::Type *type = irgen->get_ll_type(this->GetType());
+
+
     llvm::Twine *twine = new llvm::Twine(name);	
     llvm::BasicBlock *bb = irgen->GetBasicBlock();
 
+/*
+
+   /// GlobalVariable ctor - If a parent module is specified, the global is
+   /// automatically inserted into the end of the specified modules global list.
+
+   GlobalVariable(Type *Ty, bool isConstant, LinkageTypes Linkage,
+                  Constant *Initializer = nullptr, const Twine &Name = "",
+                  ThreadLocalMode = NotThreadLocal, unsigned AddressSpace = 0,
+                  bool isExternallyInitialized = false);
+   /// GlobalVariable ctor - This creates a global and inserts it before the
+   /// specified other global.
+
+  GlobalVariable(Module &M, Type *Ty, bool isConstant, LinkageTypes Linkage, Constant *Initializer,
+                 const Twine &Name = "", GlobalVariable *InsertBefore = nullptr,
+                 ThreadLocalMode = NotThreadLocal, unsigned AddressSpace = 0,
+                 bool isExternallyInitialized = false);
+
+
+
+
+
+*/
+
 	if (symtab->isGlobalScope()) {
-        llvm::GlobalVariable *variable = new llvm::GlobalVariable(module, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
+        llvm::GlobalVariable *variable = new llvm::GlobalVariable(mod, type, false, llvm::GlobalValue::CommonLinkage, 0, name);
         sym.name = name;
         sym.value = variable;
         symtab->insert(sym);
     }
     else {  //if not global
-        llvm::AllocaInst *allocInst = new llvm::AllocaInst(type,*twine,bb);
+        llvm::AllocaInst *allocInst = new llvm::AllocaInst(type, *twine, bb);
         sym.value = allocInst;
         symtab->insert(sym);
     }

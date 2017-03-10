@@ -36,6 +36,18 @@ class IRGenerator {
     llvm::BasicBlock *GetBasicBlock() const;
     void        SetBasicBlock(llvm::BasicBlock *bb);
 
+    llvm::Type* get_ll_type(Type* t) {
+        
+        if(t == Type::intType)
+           return IRGenerator::GetIntType();
+        else if(t == Type::boolType)
+            return IRGenerator::GetBoolType();
+        else if (t == Type::floatType)
+            return IRGenerator::GetFloatType();
+        else 
+            return NULL;
+    }
+
     llvm::Type *GetIntType() const;
     llvm::Type *GetBoolType() const;
     llvm::Type *GetFloatType() const;
