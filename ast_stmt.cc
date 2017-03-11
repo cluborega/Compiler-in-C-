@@ -30,8 +30,10 @@ void Program::Emit() {
     // You can use this as a template and create Emit() function
     // for individual node to fill in the module structure and instructions.
     //
+	
+	/*
     IRGenerator irgen;
-    llvm::Module *mod = irgen.GetOrCreateModule("Name_the_Module.bc");
+    llvm::Module *mod = irgen.GetOrCreateModule("Module.bc");
 
     // create a function signature
     std::vector<llvm::Type *> argTypes;
@@ -41,7 +43,7 @@ void Program::Emit() {
     llvm::FunctionType *funcTy = llvm::FunctionType::get(intTy, argArray, false);
 
     // llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("foo", intTy, intTy, (Type *)0));
-    llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("Name_the_function", funcTy));
+    llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("Function", funcTy));
     llvm::Argument *arg = f->arg_begin();
     arg->setName("x");
 
@@ -59,6 +61,22 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     //mod->dump();
+	*/
+	
+    IRGenerator irgen;
+    llvm::Module *mod = irgen.GetOrCreateModule("Module.bc");
+
+	symtab->push();
+	
+	for (int i = 0; i < decls->NumElements();i++){
+		Decl *decl = decls->Nth(i);
+		
+		decl->Emit();
+	}
+
+	symtab->pop();
+
+	llvm::WriteBitcodeToFile(mod, llvm::outs());
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -74,25 +92,39 @@ void StmtBlock::PrintChildren(int indentLevel) {
 
 void StmtBlock::Emit() {
     
+	llvm::LLVMContext *context;
+	
+	context = irgen->GetContext(); // get context
+	
+	
+	
+	
     //get the current scope
-    ScopedTable *currScope = symtab->currentScope();
+    ScopedTable *currScope = NULL;
+	
+	//symtab->currentScope();
 
-    for (int i=0; i < stmts->NumElements(); ++i) {
-        /* Returns a pointer to the terminator instruction that appears 
-          at the end of the BasicBlock. If there is no terminator instruction, 
-          or if the last instruction in the block is not a terminator, 
-          then a null pointer is returned.*/
-       // if(!IRGenerator::Inst.GetBasicBlock()->getTerminator())
-         //   break;
+	//symtab->insert(SymbolTable::Block);
+	symtab->push();
+	
+	// in formals
+	for (int i=0; i < decls->NumElements(); i++){
+		Decl *dec = decls->Nth(i);
+		
+		dec->Emit();
+	}
+	
+	// statement in body of function
+    for (int i = 0; i < stmts->NumElements(); i++) {
+		Stmt *stmt = stmts->Nth(i);
         
-        stmts->Nth(i)->Emit();
+        stmt->Emit();
     }
-
-    if(symtab->noReturnFlag){
-        //TODO
-        //what to do when there is return?? or no return??
-
-    }
+	
+	
+	// delete scope
+	symtab->pop();
+	
 }
 
 DeclStmt::DeclStmt(Decl *d) {

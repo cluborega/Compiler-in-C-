@@ -76,12 +76,15 @@ void VarDecl::Emit(){
     Symbol sym;
     char* name = this->GetIdentifier()->GetName();
 
+	
+	/*
     // Symbol* symbol_f = symtab->tables[index]->find(name);
     llvm::Module *module = irgen->GetOrCreateModule("foo.bc");
     llvm::Type *type = irgen->GetType(this->GetType());
     llvm::Twine *twine = new llvm::Twine(name);	
     llvm::BasicBlock *bb = irgen->GetBasicBlock();
 
+	
 	if (symtab->isGlobalScope()) {
         llvm::GlobalVariable *variable = new llvm::GlobalVariable(module, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
         sym.name = name;
@@ -93,12 +96,16 @@ void VarDecl::Emit(){
         sym.value = allocInst;
         symtab->insert(sym);
     }
+	*/
+	
 	//return val;
 }
 
 void FnDecl::Emit() {
 	llvm::Value* val = NULL;
 	llvm::Value* init = NULL;
+	
+	
 	
 	//return val;
 }

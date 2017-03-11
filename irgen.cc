@@ -62,3 +62,11 @@ const char *IRGenerator::TargetLayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i3
 
 const char *IRGenerator::TargetTriple = "x86_64-redhat-linux-gnu";
 
+/*
+llvm::Type *IRGenerator::GetType(Type* ty) const {
+	llvm::Type *ty = llvm::Type::getFloatTy(*context);
+	
+	
+	return ty;
+}
+*/

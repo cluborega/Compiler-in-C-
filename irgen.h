@@ -39,6 +39,8 @@ class IRGenerator {
     llvm::Type *GetIntType() const;
     llvm::Type *GetBoolType() const;
     llvm::Type *GetFloatType() const;
+	
+	//llvm::Type *GetType(Type*) const;
 
 	llvm::Type *ast_llvm(Type* astTy, llvm::LLVMContext *context);
     llvm::BasicBlock *branchTarget;
