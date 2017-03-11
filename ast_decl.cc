@@ -91,29 +91,21 @@ void VarDecl::Emit(){
 
 /*
 
-   /// GlobalVariable ctor - If a parent module is specified, the global is
-   /// automatically inserted into the end of the specified modules global list.
+  GlobalVariable(Module &M, 
+                 Type *Ty, bool isConstant, 
+                 LinkageTypes Linkage, Constant *Initializer,
+                 const Twine &Name = "", 
 
-   GlobalVariable(Type *Ty, bool isConstant, LinkageTypes Linkage,
-                  Constant *Initializer = nullptr, const Twine &Name = "",
-                  ThreadLocalMode = NotThreadLocal, unsigned AddressSpace = 0,
-                  bool isExternallyInitialized = false);
-   /// GlobalVariable ctor - This creates a global and inserts it before the
-   /// specified other global.
-
-  GlobalVariable(Module &M, Type *Ty, bool isConstant, LinkageTypes Linkage, Constant *Initializer,
-                 const Twine &Name = "", GlobalVariable *InsertBefore = nullptr,
+                 GlobalVariable *InsertBefore = nullptr,
                  ThreadLocalMode = NotThreadLocal, unsigned AddressSpace = 0,
                  bool isExternallyInitialized = false);
-
-
-
-
 
 */
 
 	if (symtab->isGlobalScope()) {
-        llvm::GlobalVariable *variable = new llvm::GlobalVariable(mod, type, false, llvm::GlobalValue::CommonLinkage, 0, name);
+        llvm::GlobalVariable *variable = new 
+llvm::GlobalVariable(*mod, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
+
         sym.name = name;
         sym.value = variable;
         symtab->insert(sym);
