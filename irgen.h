@@ -24,7 +24,8 @@ class IRGenerator {
   public:
     IRGenerator();
     ~IRGenerator();
-    static IRGenerator Inst;
+    
+    static IRGenerator& Instance();
 
     llvm::Module   *GetOrCreateModule(const char *moduleID);
     llvm::LLVMContext *GetContext() const { return context; }
@@ -36,27 +37,37 @@ class IRGenerator {
     llvm::BasicBlock *GetBasicBlock() const;
     void        SetBasicBlock(llvm::BasicBlock *bb);
 
-    llvm::Type* get_ll_type(Type* t) {
-        
-        if(t == Type::intType)
-           return IRGenerator::GetIntType();
-        else if(t == Type::boolType)
-            return IRGenerator::GetBoolType();
-        else if (t == Type::floatType)
-            return IRGenerator::GetFloatType();
-        else 
-            return NULL;
-    }
-
     llvm::Type *GetIntType() const;
     llvm::Type *GetBoolType() const;
     llvm::Type *GetFloatType() const;
+    llvm::Type *GetVoidType() const;
+    llvm::Type *GetVecType(int s) const;
+
+    // llvm::Type* get_ll_type(Type* t);
+    // llvm::Type *GetVec3Type() const;
+    // llvm::Type *GetVec4Type() const;
 
 	llvm::Type *ast_llvm(Type* astTy, llvm::LLVMContext *context);
     llvm::BasicBlock *branchTarget;
     stack<llvm::BasicBlock*> continueBlockStack;
     stack<llvm::BasicBlock*> breakBlockStack;
     stack<llvm::BasicBlock*> footerStack;
+llvm::Type* get_ll_type(Type* t) {    
+    if(t == Type::intType)
+       return IRGenerator::GetIntType();
+    else if(t == Type::boolType)
+        return IRGenerator::GetBoolType();
+    else if (t == Type::floatType)
+        return IRGenerator::GetFloatType();
+    else if (t == Type::vec2Type)
+        return IRGenerator::GetVecType(2);
+    else if (t == Type::vec3Type)
+        return IRGenerator::GetVecType(3);
+    else if (t == Type::vec4Type)
+        return IRGenerator::GetVecType(4);
+    else
+        return NULL;
+}
 
   private:
     llvm::LLVMContext *context;

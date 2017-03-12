@@ -32,10 +32,24 @@ void Program::Emit() {
     //
    
    /*
-    IRGenerator irgen;
-    llvm::Module *mod = irgen.GetOrCreateModule("Name_the_Module.bc");
+    llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
-    // create a function signature
+    for (int i = 0; i < decls->NumElements(); ++i)
+       decls->Nth(i)->Emit();
+   */
+
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
+
+    for (int i = 0; i < decls->NumElements(); ++i)
+       decls->Nth(i)->Emit();
+
+    mod->dump();
+    llvm::WriteBitcodeToFile(mod, llvm::outs());
+
+    // cerr << "in program emit "<<endl;
+
+   /* // create a function signature
     std::vector<llvm::Type *> argTypes;
     llvm::Type *intTy = irgen.GetIntType();
     argTypes.push_back(intTy);
@@ -57,12 +71,11 @@ void Program::Emit() {
     llvm::ReturnInst::Create(*context, sum, bb);
 
     // write the BC into standard output
-    llvm::WriteBitcodeToFile(mod, llvm::outs());
+    llvm::WriteBitcodeToFile(mod, llvm::outs()); */
 
-    */
 
     //uncomment the next line to generate the human readable/assembly file
-    //mod->dump();
+    // mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -77,19 +90,24 @@ void StmtBlock::PrintChildren(int indentLevel) {
 }
 
 void StmtBlock::Emit() {
+    IRGenerator &irgen = IRGenerator::Instance();
     
-    //get the current scope
+    symtab->push(); //creates a new scope
     ScopedTable *currScope = symtab->currentScope();
+
+    for (int i =0; i < decls->NumElements(); ++i) {
+        decls->Nth(i)->Emit();
+    }
 
     for (int i=0; i < stmts->NumElements(); ++i) {
         /* Returns a pointer to the terminator instruction that appears 
           at the end of the BasicBlock. If there is no terminator instruction, 
           or if the last instruction in the block is not a terminator, 
           then a null pointer is returned.*/
-       // if(!IRGenerator::Inst.GetBasicBlock()->getTerminator())
-         //   break;
-        
+       if(!irgen.GetBasicBlock()->getTerminator())
         stmts->Nth(i)->Emit();
+        
+
     }
 
     if(symtab->noReturnFlag){
