@@ -41,7 +41,7 @@
 #include "location.h"
 #include <iostream>
 
-#include "llvm/IR/Value.h"
+// #include "llvm/IR/Value.h"
 // #include "llvm/IR/LLVMContext.h"
 // #include "llvm/IR/Module.h"
 // #include "llvm/IR/Constants.h"
@@ -52,7 +52,7 @@ using namespace std;
 class SymbolTable;
 class MyStack;
 class FnDecl;
-class IRGenerator;
+// class IRGenerator;
 
 class Node  {
   protected:
@@ -60,7 +60,7 @@ class Node  {
     Node *parent;
 
   public:
-    static IRGenerator* irgen;
+    // static IRGenerator* irgen;
     static SymbolTable *symtab;
     Node(yyltype loc);
     Node();
@@ -80,7 +80,7 @@ class Node  {
 
 	static MyStack *stk;
 	static int globalScopeIndex;
-    virtual void Emit() {}
+    // virtual void Emit() {}
 	
 	//llvm::Value* Emit();
 };

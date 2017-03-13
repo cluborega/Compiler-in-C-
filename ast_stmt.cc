@@ -30,12 +30,37 @@ void Program::Emit() {
     // You can use this as a template and create Emit() function
     // for individual node to fill in the module structure and instructions.
     //
-	
-	/*
-    IRGenerator irgen;
-    llvm::Module *mod = irgen.GetOrCreateModule("Module.bc");
 
-    // create a function signature
+   
+   /*
+    llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
+
+
+    for (int i = 0; i < decls->NumElements(); ++i)
+       decls->Nth(i)->Emit();
+   */
+
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
+
+    cerr << "symtab.size()" << symtab->tables.size() <<endl;
+
+    if ( decls->NumElements() > 0 ) { 
+        for (int i = 0; i < decls->NumElements(); ++i){
+
+            cerr << " i = " <<i <<endl;
+            Decl *d = decls->Nth(i);
+
+            d->Emit();
+        }
+    }
+
+    mod->dump();
+    llvm::WriteBitcodeToFile(mod, llvm::outs());
+
+    // cerr << "in program emit "<<endl;
+
+   /* // create a function signature
     std::vector<llvm::Type *> argTypes;
     llvm::Type *intTy = irgen.GetIntType();
     argTypes.push_back(intTy);
@@ -57,26 +82,12 @@ void Program::Emit() {
     llvm::ReturnInst::Create(*context, sum, bb);
 
     // write the BC into standard output
-    llvm::WriteBitcodeToFile(mod, llvm::outs());
+    llvm::WriteBitcodeToFile(mod, llvm::outs()); */
+
 
     //uncomment the next line to generate the human readable/assembly file
-    //mod->dump();
-	*/
-	
-    IRGenerator irgen;
-    llvm::Module *mod = irgen.GetOrCreateModule("Module.bc");
+    // mod->dump();
 
-	symtab->push();
-	
-	for (int i = 0; i < decls->NumElements();i++){
-		Decl *decl = decls->Nth(i);
-		
-		decl->Emit();
-	}
-
-	symtab->pop();
-
-	llvm::WriteBitcodeToFile(mod, llvm::outs());
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -90,41 +101,56 @@ void StmtBlock::PrintChildren(int indentLevel) {
     stmts->PrintAll(indentLevel+1);
 }
 
-void StmtBlock::Emit() {
-    
-	llvm::LLVMContext *context;
-	
-	context = irgen->GetContext(); // get context
-	
-	
-	
-	
-    //get the current scope
-    ScopedTable *currScope = NULL;
-	
-	//symtab->currentScope();
-
-	//symtab->insert(SymbolTable::Block);
-	symtab->push();
-	
-	// in formals
-	for (int i=0; i < decls->NumElements(); i++){
-		Decl *dec = decls->Nth(i);
-		
-		dec->Emit();
-	}
-	
-	// statement in body of function
-    for (int i = 0; i < stmts->NumElements(); i++) {
-		Stmt *stmt = stmts->Nth(i);
-        
-        stmt->Emit();
+bool StmtBlock::hasReturn() {
+    if (stmts->NumElements() > 0) {
+        int num_elems = stmts->NumElements();
+        for (int i = 0; i < num_elems; ++i) {
+            ReturnStmt *rs = dynamic_cast<ReturnStmt*>(stmts->Nth(i));
+            if (rs == NULL) {
+                StmtBlock *sb = dynamic_cast<StmtBlock*>(stmts->Nth(i));
+                if (sb != NULL)
+                    return sb->hasReturn();
+            }
+            else
+                return true;
+        }
     }
-	
-	
-	// delete scope
-	symtab->pop();
-	
+    return false;
+
+}
+
+void StmtBlock::Emit() {
+    cerr << "stmt block "<<endl;
+    IRGenerator &irgen = IRGenerator::Instance();
+    
+
+    symtab->push(); //creates a new scope
+    ScopedTable *currScope = symtab->currentScope();
+    /*
+      For each element 'a' in formals:
+      Create local variable (as in VarDecl::Emit)
+      VarDecl emit should take it to AllocalInst in the else block
+    */
+    for (int i =0; i < decls->NumElements(); ++i) {
+        cerr <<" name of var "<<decls->Nth(i)->GetType()<<endl;
+        decls->Nth(i)->Emit();
+		
+		Symbol sym;
+		symtab->insert(sym);
+
+    }
+
+    for (int i=0; i < stmts->NumElements(); ++i) {
+        /* Returns a pointer to the terminator instruction that appears 
+          at the end of the BasicBlock. If there is no terminator instruction, 
+          or if the last instruction in the block is not a terminator, 
+          then a null pointer is returned.*/
+       if(irgen.GetBasicBlock()->getTerminator()) break;//
+
+       stmts->Nth(i)->Emit();
+
+    }
+
 }
 
 DeclStmt::DeclStmt(Decl *d) {
@@ -137,7 +163,8 @@ void DeclStmt::PrintChildren(int indentLevel) {
 }
 
 void DeclStmt::Emit(){
-    decl->Emit();
+    VarDecl *vd = dynamic_cast<VarDecl*>(this->decl); //this one is similar to p3 check... make sure with tutor
+    vd->Emit();
 }
 
 ConditionalStmt::ConditionalStmt(Expr *t, Stmt *b) { 
@@ -162,15 +189,100 @@ void ForStmt::PrintChildren(int indentLevel) {
     body->Print(indentLevel+1, "(body) ");
 }
 
+void ForStmt::Emit(){
+	
+	IRGenerator *irgen = &(IRGenerator::Instance());
+
+
+	if(step != NULL) {
+		llvm::BasicBlock *hb = llvm::BasicBlock::Create(irgen->GetContext(), "Header block", irgen->GetFunction());
+		llvm::BasicBlock *fb = llvm::BasicBlock::Create(irgen->GetContext(), "Step block", irgen->GetFunction());
+		llvm::BasicBlock *sb = llvm::BasicBlock::Create(irgen->GetContext(), "Footer block", irgen->GetFunction());
+		llvm::BasicBlock *bb = llvm::BasicBlock::Create(irgen->GetContext(), "Body block", irgen->GetFunction());
+
+		irgen->breakBlockStack.push(sb);
+		irgen->continueBlockStack.push(fb);
+
+		init->Emit();
+		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
+
+		irgen->SetBasicBlock(hb);
+		
+		test->Emit();
+		
+		llvm::BranchInst::Create(bb, sb, test->getEmit(), hb);
+
+		irgen->SetBasicBlock(bb);
+		body->Emit();
+		llvm::BranchInst::Create(fb, irgen->GetBasicBlock());
+		irgen->SetBasicBlock(fb);
+		
+		
+		step->Emit();
+		llvm::BranchInst::Create(hb, fb);
+
+		irgen->breakBlockStack.pop();
+		irgen->continueBlockStack.pop();
+		
+		irgen->SetBasicBlock(sb);
+
+	}
+	else if(step == NULL) {
+		llvm::BasicBlock *hb = llvm::BasicBlock::Create(irgen->GetContext(), "Header block", irgen->GetFunction());
+		llvm::BasicBlock *bb = llvm::BasicBlock::Create(irgen->GetContext(), "Body block", irgen->GetFunction());
+		llvm::BasicBlock *sb = llvm::BasicBlock::Create(irgen->GetContext(), "Footer block", irgen->GetFunction());
+
+
+		irgen->breakBlockStack.push(sb);
+		irgen->continueBlockStack.push(hb);
+
+		init->Emit();
+		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
+
+		irgen->SetBasicBlock(hb);
+		
+		test->Emit();
+		
+		llvm::BranchInst::Create(bb, sb, test->getEmit(), hb);
+
+		irgen->SetBasicBlock(bb);
+		body->Emit();
+		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
+
+
+		irgen->breakBlockStack.pop();
+		irgen->continueBlockStack.pop();
+
+		irgen->SetBasicBlock(sb);
+	}
+}
+
+
 void WhileStmt::PrintChildren(int indentLevel) {
     test->Print(indentLevel+1, "(test) ");
     body->Print(indentLevel+1, "(body) ");
+}
+
+void WhileStmt::Emit(){
+
+}
+
+void BreakStmt::Emit() {
+
+}
+
+void ContinueStmt::Emit() {
+    
 }
 
 IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) { 
     Assert(t != NULL && tb != NULL); // else can be NULL
     elseBody = eb;
     if (elseBody) elseBody->SetParent(this);
+}
+
+void IfStmt::Emit(){
+
 }
 
 void IfStmt::PrintChildren(int indentLevel) {
@@ -188,6 +300,10 @@ ReturnStmt::ReturnStmt(yyltype loc, Expr *e) : Stmt(loc) {
 void ReturnStmt::PrintChildren(int indentLevel) {
     if ( expr ) 
       expr->Print(indentLevel+1);
+}
+
+void ReturnStmt::Emit(){
+
 }
 
 SwitchLabel::SwitchLabel(Expr *l, Stmt *s) {
@@ -219,5 +335,9 @@ void SwitchStmt::PrintChildren(int indentLevel) {
     if (expr) expr->Print(indentLevel+1);
     if (cases) cases->PrintAll(indentLevel+1);
     if (def) def->Print(indentLevel+1);
+}
+
+void SwitchStmt::Emit(){
+
 }
 

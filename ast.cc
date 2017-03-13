@@ -6,13 +6,14 @@
 #include "ast_type.h"
 #include "ast_decl.h"
 #include "symtable.h"
+// #include "irgen.h"
 #include <string.h> // strdup
 #include <stdio.h>  // printf
 
 #include "irgen.h"
 
 SymbolTable *Node::symtab = new SymbolTable();
-IRGenerator *Node::irgen = new IRGenerator();
+// IRGenerator *Node::irgen = new IRGenerator();
 
 int Node::globalScopeIndex = 0;
 MyStack * Node::stk = new MyStack;

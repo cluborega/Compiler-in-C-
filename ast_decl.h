@@ -36,6 +36,7 @@ class Decl : public Node
     Decl(Identifier *name);
     Identifier *GetIdentifier() const { return id; }
     friend ostream& operator<<(ostream& out, Decl *d) { return out << d->id; }
+    virtual void Emit() = 0;
 
 };
 
@@ -84,8 +85,7 @@ class FnDecl : public Decl
 
     Type *GetType() const { return returnType; }
     List<VarDecl*> *GetFormals() {return formals;}
-	
-	void Emit();
+    void Emit();
 };
 
 class FormalsError : public FnDecl

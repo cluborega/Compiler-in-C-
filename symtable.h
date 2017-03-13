@@ -84,7 +84,14 @@ class SymbolTable {
     ScopedTable * currentScope(){ return tables.back(); }
 
     Type *returnType;
-    bool noReturnFlag, funcFlag, breakFlag;
+    bool noReturnFlag, funcFlag, breakFlag, returnFlag;
+
+    void setReturn( bool flag ) {
+      returnFlag = flag;
+    }
+
+    bool getReturn () { return returnFlag; }
+
 	
 };    
 
