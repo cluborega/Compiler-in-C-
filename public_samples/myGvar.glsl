@@ -1,4 +1,10 @@
-float foo(float x)
+int foo(float x)
 {
-  return x;
+	int x;
+	float y;
+
+	x++;
+	--x;
+	y--;
+	return y;
 }

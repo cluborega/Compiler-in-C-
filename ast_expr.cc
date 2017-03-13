@@ -16,11 +16,19 @@ void IntConstant::PrintChildren(int indentLevel) {
     printf("%d", value);
 }
 
+llvm::Value* IntConstant::getEmit() {
+  return llvm::ConstantInt::get(IRGenerator::Instance().GetIntType(), this->value, true);
+}
+
 FloatConstant::FloatConstant(yyltype loc, double val) : Expr(loc) {
     value = val;
 }
 void FloatConstant::PrintChildren(int indentLevel) { 
     printf("%g", value);
+}
+
+llvm::Value* FloatConstant::getEmit() {
+    return llvm::ConstantFP::get(IRGenerator::Instance().GetFloatType(), this->value);
 }
 
 BoolConstant::BoolConstant(yyltype loc, bool val) : Expr(loc) {
@@ -30,9 +38,30 @@ void BoolConstant::PrintChildren(int indentLevel) {
     printf("%s", value ? "true" : "false");
 }
 
+llvm::Value* BoolConstant::getEmit() {
+  return llvm::ConstantInt::get(IRGenerator::Instance().GetBoolType(), this->value, true);
+}
+
 VarExpr::VarExpr(yyltype loc, Identifier *ident) : Expr(loc) {
     Assert(ident != NULL);
     this->id = ident;
+}
+
+llvm::Value* VarExpr::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    Symbol *s = symtab->find(id->GetName()); //find the var in symtable
+
+    llvm::Value* llvm_value = NULL;
+    // Type *vdType = NULL;
+    
+    if(s){
+        llvm_value = s->value; //get its value
+        VarDecl* vd = dynamic_cast<VarDecl*>(s->decl);
+        this->type = vd->GetType();
+    }
+
+    llvm::LoadInst* var_expr = new llvm::LoadInst(llvm_value, this->GetIdentifier()->GetName(), irgen.GetBasicBlock());
+    return var_expr;
 }
 
 void VarExpr::PrintChildren(int indentLevel) {
@@ -79,6 +108,60 @@ void CompoundExpr::PrintChildren(int indentLevel) {
    if (left) left->Print(indentLevel+1);
    op->Print(indentLevel+1);
    if (right) right->Print(indentLevel+1);
+}
+
+llvm::Value* AssignExpr::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::Value *value_to_assign = NULL;
+
+    llvm::Value* lhs = left->getEmit();
+    llvm::Value* rhs = right->getEmit();
+
+    VarExpr *var = dynamic_cast<VarExpr*>(left);
+
+    int index = symtab->tables.size() - 1; 
+    Symbol* s = symtab->tables[index]->find(var->GetIdentifier()->GetName());
+    
+    if(s == NULL){
+         cerr << "symbol is NULL " << endl;
+    }
+
+    if (op->to_string() == "=") {
+        value_to_assign = rhs;
+        cerr << "assign val = " << value_to_assign << endl;
+    }
+    else {
+        // std::string op_str = op->to_string().substr(0, 1);
+        // Operator *temp_op = new Operator(op_str.data());
+        // ArithmeticExpr *arith_expr = new ArithmeticExpr(left, temp_op, right);
+        // value_to_assign = arith_expr->getEmit();
+    }
+
+    (void) new llvm::StoreInst(value_to_assign, s->value, "", irgen.GetBasicBlock());
+    return value_to_assign;
+}
+
+llvm::Value* PostfixExpr::getEmit() {
+  IRGenerator &irgen = IRGenerator::Instance();
+
+  llvm::Value *varVal = left->getEmit();
+  std::string operation = op->to_string();
+  llvm::Value *newVal = NULL;
+
+  if (operation == "++")
+    newVal = irgen.PostFixIncrementInst(varVal);
+  else
+    newVal = irgen.PostFixDecrementInst(varVal);
+
+  // VarExpr *var = dynamic_cast<VarExpr*>(left);
+  // FieldAccess * swizzle = dynamic_cast<FieldAccess*>(left);
+
+  // if (var)
+  //   Scope::current->AssignVar(var->GetIdentifier(), newVal);
+  // else if (swizzle)
+  //   Scope::current->AssignSwizzle(swizzle, newVal);
+
+  return varVal;
 }
    
 ConditionalExpr::ConditionalExpr(Expr *c, Expr *t, Expr *f)

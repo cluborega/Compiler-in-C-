@@ -73,6 +73,8 @@ void FnDecl::PrintChildren(int indentLevel) {
 
 void VarDecl::Emit(){
 
+    cerr << "entering vardecl "<<endl;
+
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule(NULL);
 
@@ -82,6 +84,7 @@ void VarDecl::Emit(){
     // symbol_f.name;
 
     // llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
+    cerr << "sending this type. " << this->GetType() <<endl;
     llvm::Type *type = irgen.get_ll_type(this->GetType());
 
 
@@ -95,6 +98,7 @@ void VarDecl::Emit(){
         symtab->insert(*sym);
     }
     else {  //if not global
+        cerr << "vardecl local var " <<endl;
         llvm::AllocaInst *allocInst = new llvm::AllocaInst(type, *twine, bb);
         sym->value = allocInst;
         symtab->insert(*sym);
@@ -164,7 +168,7 @@ void FnDecl::Emit() {
          (void) new llvm::StoreInst(arg, symbol_f->value, "", irgen.GetBasicBlock());
      }
 
-     // body->Emit();
+     body->Emit();
 
     // if(this->body != NULL){
     //     StmtBlock *block = dynamic_cast<StmtBlock*>(this->body);

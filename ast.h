@@ -80,7 +80,7 @@ class Node  {
 
 	static MyStack *stk;
 	static int globalScopeIndex;
-    virtual void Emit() {}
+    // virtual void Emit() {}
 	
 	//llvm::Value* Emit();
 };

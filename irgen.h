@@ -43,6 +43,10 @@ class IRGenerator {
     llvm::Type *GetVoidType() const;
     llvm::Type *GetVecType(int s) const;
 
+    llvm::Value *PostFixIncrementInst(llvm::Value *value);
+    llvm::Value *PostFixDecrementInst(llvm::Value *value);
+    llvm::Value *GetOpWithScalar(llvm::Value *value, char op, float scalar);
+
     // llvm::Type* get_ll_type(Type* t);
     // llvm::Type *GetVec3Type() const;
     // llvm::Type *GetVec4Type() const;
@@ -52,6 +56,7 @@ class IRGenerator {
     stack<llvm::BasicBlock*> continueBlockStack;
     stack<llvm::BasicBlock*> breakBlockStack;
     stack<llvm::BasicBlock*> footerStack;
+
 llvm::Type* get_ll_type(Type* t) {    
     if(t == Type::intType)
        return IRGenerator::GetIntType();
