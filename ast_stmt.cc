@@ -195,10 +195,10 @@ void ForStmt::Emit(){
 
 
 	if(step != NULL) {
-		llvm::BasicBlock *hb = llvm::BasicBlock::Create(irgen->GetContext(), "Header block", irgen->GetFunction());
-		llvm::BasicBlock *fb = llvm::BasicBlock::Create(irgen->GetContext(), "Step block", irgen->GetFunction());
-		llvm::BasicBlock *sb = llvm::BasicBlock::Create(irgen->GetContext(), "Footer block", irgen->GetFunction());
-		llvm::BasicBlock *bb = llvm::BasicBlock::Create(irgen->GetContext(), "Body block", irgen->GetFunction());
+		llvm::BasicBlock *hb = llvm::BasicBlock::Create(*irgen->GetContext(), "Header block", irgen->GetFunction());
+		llvm::BasicBlock *fb = llvm::BasicBlock::Create(*irgen->GetContext(), "Step block", irgen->GetFunction());
+		llvm::BasicBlock *sb = llvm::BasicBlock::Create(*irgen->GetContext(), "Footer block", irgen->GetFunction());
+		llvm::BasicBlock *bb = llvm::BasicBlock::Create(*irgen->GetContext(), "Body block", irgen->GetFunction());
 
 		irgen->breakBlockStack.push(sb);
 		irgen->continueBlockStack.push(fb);
@@ -228,9 +228,9 @@ void ForStmt::Emit(){
 
 	}
 	else if(step == NULL) {
-		llvm::BasicBlock *hb = llvm::BasicBlock::Create(irgen->GetContext(), "Header block", irgen->GetFunction());
-		llvm::BasicBlock *bb = llvm::BasicBlock::Create(irgen->GetContext(), "Body block", irgen->GetFunction());
-		llvm::BasicBlock *sb = llvm::BasicBlock::Create(irgen->GetContext(), "Footer block", irgen->GetFunction());
+		llvm::BasicBlock *hb = llvm::BasicBlock::Create(*irgen->GetContext(), "Header block", irgen->GetFunction());
+		llvm::BasicBlock *bb = llvm::BasicBlock::Create(*irgen->GetContext(), "Body block", irgen->GetFunction());
+		llvm::BasicBlock *sb = llvm::BasicBlock::Create(*irgen->GetContext(), "Footer block", irgen->GetFunction());
 
 
 		irgen->breakBlockStack.push(sb);
