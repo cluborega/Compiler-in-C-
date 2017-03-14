@@ -54,6 +54,7 @@ class IRGenerator {
 
 	llvm::Type *ast_llvm(Type* astTy, llvm::LLVMContext *context);
     llvm::BasicBlock *branchTarget;
+	
     stack<llvm::BasicBlock*> continueBlockStack;
     stack<llvm::BasicBlock*> breakBlockStack;
     stack<llvm::BasicBlock*> footerStack;
