@@ -73,7 +73,7 @@ void FnDecl::PrintChildren(int indentLevel) {
 
 void VarDecl::Emit(){
 
-    cerr << "entering vardecl "<<endl;
+    // cerr << "entering vardecl "<<endl;
 
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule(NULL);
@@ -84,7 +84,7 @@ void VarDecl::Emit(){
     // symbol_f.name;
 
     // llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
-    cerr << "sending this type. " << this->GetType() <<endl;
+    // cerr << "sending this type. " << this->GetType() <<endl;
     llvm::Type *type = irgen.get_ll_type(this->GetType());
 
 
@@ -98,17 +98,19 @@ void VarDecl::Emit(){
         symtab->insert(*sym);
     }
     else {  //if not global
-        cerr << "vardecl local var " <<endl;
+        // cerr << "vardecl local var " <<endl;
         llvm::AllocaInst *allocInst = new llvm::AllocaInst(type, *twine, bb);
         sym->value = allocInst;
+        // cerr << "inserting symbol " <<sym->name <<endl;
         symtab->insert(*sym);
     }
 }
 
 void FnDecl::Emit() {
 
-  IRGenerator &irgen = IRGenerator::Instance();
-  llvm::Module *mod = irgen.GetOrCreateModule(NULL);
+    // cerr << "entering funcdecl....." <<endl;
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::Module *mod = irgen.GetOrCreateModule(NULL);
     // create a function signature
     std::vector<llvm::Type *> argTypes;
     // llvm::Type *intTy = irgen.GetIntType();
@@ -122,15 +124,20 @@ void FnDecl::Emit() {
     // argTypes.push_back(declType);
 
     llvm::ArrayRef<llvm::Type *> argArray(argTypes);
-    // cerr<<"function return type is " << this->GetType() <<endl;
-    llvm::FunctionType *funcTy = llvm::FunctionType::get(irgen.get_ll_type(this->GetType()), argArray, false);\
+    llvm::Type *retType = irgen.get_ll_type(returnType);
+    // cerr<<"fndecl::function return type is " << returnType <<endl;
+    llvm::FunctionType *funcTy = llvm::FunctionType::get(retType, argArray, false);
      
-    symtab->funcFlag = true;
-    Symbol* sym = new Symbol(this->GetIdentifier()->GetName(), this, E_FunctionDecl, NULL);
+    // symtab->funcFlag = true;
+
+    // cerr << "fndecl:: creating new symbol " << this->GetIdentifier()->GetName() <<endl;
+
     // llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("foo", intTy, intTy, (Type *)0));
-    llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction(sym->name, funcTy));
+    llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction(id->GetName(), funcTy));
     irgen.SetFunction(f);
-    sym->value = f;
+    // sym->value = f;
+    Symbol* sym = new Symbol(this->GetIdentifier()->GetName(), this, E_FunctionDecl, f);
+    // cerr << "fndecl::inserting symbol " << sym->name <<endl;
     symtab->insert(*sym);
 
 
@@ -140,11 +147,11 @@ void FnDecl::Emit() {
   
     // insert a block into the runction
     llvm::LLVMContext *context = irgen.GetContext();
-    llvm::BasicBlock *bb = llvm::BasicBlock::Create(*context, "entry", f);
-    irgen.SetBasicBlock(bb);
+    llvm::BasicBlock *entry_bb = llvm::BasicBlock::Create(*context, "entry", f);
+    irgen.SetBasicBlock(entry_bb);
 
     //push a new scope
-    symtab->push();
+    // symtab->push();
 
     llvm::Argument *arg = f->arg_begin(); //iterator 
     // add formal parameters into scope
@@ -163,10 +170,20 @@ void FnDecl::Emit() {
          *  So just search for the symbol to get the scope and store the instance ??
          */
 
-         int index = symtab->tables.size() - 1; // get the current scope
-         Symbol* symbol_f = symtab->tables[index]->find(name); //find the symbol
-         (void) new llvm::StoreInst(arg, symbol_f->value, "", irgen.GetBasicBlock());
+         // int index = symtab->tables.size() - 1; // get the current scope
+         // Symbol* symbol_f = symtab->tables[index]->find(name); //find the symbol
+         // (void) new llvm::StoreInst(arg, symbol_f->value, "", irgen.GetBasicBlock());
      }
+
+    //create new basic block
+    llvm::BasicBlock *next_bb = llvm::BasicBlock::Create(*(irgen.GetContext()), "next", f);
+    irgen.SetBasicBlock(next_bb);
+    
+    llvm::BasicBlock::iterator it = entry_bb->begin();
+    arg = f->arg_begin();
+    for(int i = 0; i < formals->NumElements(); i++, it++, arg++){
+        (void) new llvm::StoreInst(arg, it, next_bb);
+    }
 
      body->Emit();
 
@@ -180,11 +197,9 @@ void FnDecl::Emit() {
     //         this->body->Emit();
     //     }
 
-     if(bb->getTerminator() == NULL){
-        llvm::ReturnInst::Create(*context,bb);
-    }
+     llvm::BranchInst *branch = llvm::BranchInst::Create(next_bb, entry_bb);
 
-    symtab->pop();
+    // symtab->pop();
 
     // body->Emit();
 /**

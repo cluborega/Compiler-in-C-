@@ -1,10 +1,11 @@
 int foo(float x)
 {
-	int x;
-	float y;
+	int y;
 
-	x++;
-	--x;
-	y--;
+	y += 1;
+
+	bool z;
+	z = true;
+
 	return y;
 }

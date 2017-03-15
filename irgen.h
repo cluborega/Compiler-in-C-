@@ -37,6 +37,8 @@ class IRGenerator {
     llvm::BasicBlock *GetBasicBlock() const;
     void        SetBasicBlock(llvm::BasicBlock *bb);
 
+    llvm::BasicBlock *CreateEmptyBlock(string name) ;
+
     llvm::Type *GetIntType() const;
     llvm::Type *GetBoolType() const;
     llvm::Type *GetFloatType() const;
@@ -45,7 +47,10 @@ class IRGenerator {
 
     llvm::Value *PostFixIncrementInst(llvm::Value *value);
     llvm::Value *PostFixDecrementInst(llvm::Value *value);
-    llvm::Value *GetOpWithScalar(llvm::Value *value, char op, float scalar);
+    // llvm::Value *GetOpWithScalar(llvm::Value *value, char op, float scalar);
+    llvm::Value *ToVector(llvm::Value *value, int size);
+
+    llvm::Value *BoolVectorToBool(llvm::Value *vector);
 
     // llvm::Type* get_ll_type(Type* t);
     // llvm::Type *GetVec3Type() const;
@@ -57,7 +62,8 @@ class IRGenerator {
     stack<llvm::BasicBlock*> breakBlockStack;
     stack<llvm::BasicBlock*> footerStack;
 
-llvm::Type* get_ll_type(Type* t) {    
+llvm::Type* get_ll_type(Type* t) {
+// cerr << "entering get_ll_type "<<endl; 
     if(t == Type::intType)
        return IRGenerator::GetIntType();
     else if(t == Type::boolType)

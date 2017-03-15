@@ -41,12 +41,10 @@ void Program::Emit() {
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
-    cerr << "symtab.size()" << symtab->tables.size() <<endl;
-
     if ( decls->NumElements() > 0 ) { 
         for (int i = 0; i < decls->NumElements(); ++i){
 
-            cerr << " i = " <<i <<endl;
+            // cerr << " i = " <<i <<endl;
             Decl *d = decls->Nth(i);
 
             d->Emit();
@@ -117,7 +115,7 @@ bool StmtBlock::hasReturn() {
 }
 
 void StmtBlock::Emit() {
-    cerr << "stmt block "<<endl;
+    // cerr << "stmt block "<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     
     symtab->push(); //creates a new scope
@@ -128,7 +126,7 @@ void StmtBlock::Emit() {
       VarDecl emit should take it to AllocalInst in the else block
     */
     for (int i =0; i < decls->NumElements(); ++i) {
-        cerr <<" name of var "<<decls->Nth(i)->GetType()<<endl;
+        // cerr <<" name of var "<<decls->Nth(i)->GetType()<<endl;
         decls->Nth(i)->Emit();
 
     }
@@ -208,11 +206,13 @@ void WhileStmt::Emit(){
 }
 
 void BreakStmt::Emit() {
-
+    IRGenerator *irgen = &(IRGenerator::Instance());
+    llvm::BranchInst::Create(irgen->breakBlockStack.top(), irgen->GetBasicBlock());
 }
 
 void ContinueStmt::Emit() {
-    
+    IRGenerator *irgen = &(IRGenerator::Instance());
+    llvm::BranchInst::Create(irgen->continueBlockStack.top(), irgen->GetBasicBlock());
 }
 
 IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) { 
@@ -223,6 +223,41 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) {
 
 void IfStmt::Emit(){
 
+    IRGenerator &irgen = IRGenerator::Instance();
+
+    //create basicblocks for if and else 
+    llvm::BasicBlock *block_of_then = irgen.CreateEmptyBlock("if-body");
+    llvm::BasicBlock *block_of_else = NULL;
+    llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("if-end");
+
+    if (elseBody) {
+        // cerr << "ifstmtEmit:: elsebody exists" <<endl;
+        block_of_else = irgen.CreateEmptyBlock("else-body");
+        (void) llvm::BranchInst::Create(block_of_then, block_of_else, test->getEmit(), irgen.GetBasicBlock());
+    }
+    else {
+        // cerr << "ifstmtEmit:: no else body" <<endl;
+        (void) llvm::BranchInst::Create(block_of_then, endBlock, test->getEmit(), irgen.GetBasicBlock());
+    }
+
+    irgen.SetBasicBlock(block_of_then);
+
+    body->Emit();
+
+    if (!irgen.GetBasicBlock()->getTerminator())
+        (void) llvm::BranchInst::Create(endBlock, irgen.GetBasicBlock());
+
+    if (block_of_else) {
+        block_of_else->moveAfter(irgen.GetBasicBlock());
+        irgen.SetBasicBlock(block_of_else);  
+        elseBody->Emit();
+
+        if (!irgen.GetBasicBlock()->getTerminator())
+            (void) llvm::BranchInst::Create(endBlock, irgen.GetBasicBlock());
+    }
+
+    endBlock->moveAfter(irgen.GetBasicBlock());
+    irgen.SetBasicBlock(endBlock);
 }
 
 void IfStmt::PrintChildren(int indentLevel) {
@@ -243,6 +278,12 @@ void ReturnStmt::PrintChildren(int indentLevel) {
 }
 
 void ReturnStmt::Emit(){
+    IRGenerator *irgen = &(IRGenerator::Instance());
+    if (expr == NULL)
+        llvm::ReturnInst::Create(*irgen->GetContext(), irgen->GetBasicBlock());
+    else {
+        llvm::ReturnInst::Create(*irgen->GetContext(), expr->getEmit(), irgen->GetBasicBlock());
+    }
 
 }
 

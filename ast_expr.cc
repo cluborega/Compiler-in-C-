@@ -7,7 +7,7 @@
 #include "ast_expr.h"
 #include "ast_type.h"
 #include "ast_decl.h"
-#include "symtable.h"
+
 
 IntConstant::IntConstant(yyltype loc, int val) : Expr(loc) {
     value = val;
@@ -110,6 +110,124 @@ void CompoundExpr::PrintChildren(int indentLevel) {
    if (right) right->Print(indentLevel+1);
 }
 
+// llvm::Value *UnaryExpr::ValEmit() {
+//     IRGenerator &irgen = IRGenerator::Instance();
+
+//     llvm::Value *varVal = right->ValEmit();
+//     string operation = op->to_string();
+//     llvm::Value *newVal = NULL;
+
+//     if (operation == "+")
+//         newVal = varVal;
+//     else if (operation == "-")
+//         newVal = irgen.PreNegativeInst(varVal);  //GetOpWithScalar(value, '*', -1);
+//     else if (operation == "++")
+//         newVal = irgen.PostFixIncrementInst(varVal);
+//     else if (operation == "--")
+//         newVal = irgen.PostFixDecrementInst(varVal);
+
+//     return newVal;
+// }
+
+llvm::Value* EqualityExpr::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::BasicBlock *bb = irgen.GetBasicBlock();
+
+    llvm::Value *leftValue = left->getEmit();
+    llvm::Value *rightValue = right->getEmit();
+
+    bool check;
+
+    if ( leftValue->getType()->isFloatTy() || leftValue->getType()->isVectorTy() ) {
+        check = true;
+    }
+    else
+        check = false;
+
+    llvm::CmpInst::OtherOps llvmOP;
+
+    if (check) {
+        llvmOP = llvm::FCmpInst::FCmp;
+    }
+    else {
+        llvmOP = llvm::ICmpInst::ICmp;
+    }
+    llvm::CmpInst::Predicate pred;
+
+    if (op->IsOp("==")){
+        if (check) pred = llvm::CmpInst::FCMP_OEQ; 
+        else pred = llvm::CmpInst::ICMP_EQ;
+    }
+    else {
+        if (check) pred = llvm::CmpInst::FCMP_ONE; 
+        else pred = llvm::CmpInst::ICMP_NE;
+    }
+
+    llvm::Value* result = llvm::CmpInst::Create(llvmOP, pred, leftValue, rightValue, "", bb);
+    result = irgen.BoolVectorToBool(result);
+    return result;
+}
+
+llvm::Value* ArithmeticExpr::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::BasicBlock *bb = irgen.GetBasicBlock();
+
+    llvm::Value *leftValue = left->getEmit();
+    llvm::Value *rightValue = right->getEmit();
+
+    if (leftValue->getType()->isVectorTy())
+        rightValue = irgen.ToVector(rightValue, leftValue->getType()->getVectorNumElements());
+
+    if (rightValue->getType()->isVectorTy())
+        leftValue = irgen.ToVector(leftValue, rightValue->getType()->getVectorNumElements());
+
+    bool is_float_op = leftValue->getType()->isFloatTy();
+
+    std::string opStr = op->to_string();
+    llvm::BinaryOperator::BinaryOps llvmOP;
+
+    if (op->IsOp("+")) {
+        if (is_float_op)
+            llvmOP = llvm::BinaryOperator::FAdd;
+        else
+            llvmOP = llvm::BinaryOperator::Add;
+    }
+    else if (op->IsOp("-")) {
+        if (is_float_op)
+            llvmOP = llvm::BinaryOperator::Sub;
+        else
+            llvmOP = llvm::BinaryOperator::Add;
+    }
+    else if (op->IsOp("*")) {
+        if (is_float_op)
+            llvmOP = llvm::BinaryOperator::FMul;
+        else
+            llvmOP = llvm::BinaryOperator::Mul;
+    }
+    else{
+        if (is_float_op)
+            llvmOP = llvm::BinaryOperator::FDiv;
+        else
+            llvmOP = llvm::BinaryOperator::SDiv;
+    }
+
+    return llvm::BinaryOperator::Create(llvmOP, leftValue, rightValue, "", bb);
+}
+
+llvm::Value* LogicalExpr::getEmit() {
+  IRGenerator &irgen = IRGenerator::Instance();
+  llvm::BasicBlock *bb = irgen.GetBasicBlock();
+
+  llvm::Value *lhs = left->getEmit();
+  llvm::Value *rhs = right->getEmit();
+
+  // std::string operator_ = op->to_string();
+  if (op->IsOp("&&"))
+    return llvm::BinaryOperator::CreateAnd(lhs, rhs, "", bb);
+  else
+    return llvm::BinaryOperator::CreateOr(lhs, rhs, "", bb);
+}
+
 llvm::Value* AssignExpr::getEmit() {
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Value *value_to_assign = NULL;
@@ -123,18 +241,18 @@ llvm::Value* AssignExpr::getEmit() {
     Symbol* s = symtab->tables[index]->find(var->GetIdentifier()->GetName());
     
     if(s == NULL){
-         cerr << "symbol is NULL " << endl;
+         // cerr << "symbol is NULL " << endl;
     }
 
-    if (op->to_string() == "=") {
+    if (op->IsOp("=")) {
         value_to_assign = rhs;
-        cerr << "assign val = " << value_to_assign << endl;
+        // cerr << "assign val = " << value_to_assign << endl;
     }
-    else {
-        // std::string op_str = op->to_string().substr(0, 1);
-        // Operator *temp_op = new Operator(op_str.data());
-        // ArithmeticExpr *arith_expr = new ArithmeticExpr(left, temp_op, right);
-        // value_to_assign = arith_expr->getEmit();
+    else { //handle cases for +=, -= etc , one idea is just extract the first "+, -" ..
+        // std::string op_str = op->to_string();
+        // Operator *temp_op = new Operator(op_str.c_str());
+        ArithmeticExpr *arith_expr = new ArithmeticExpr(left, op, right);
+        value_to_assign = arith_expr->getEmit();
     }
 
     (void) new llvm::StoreInst(value_to_assign, s->value, "", irgen.GetBasicBlock());
@@ -145,21 +263,24 @@ llvm::Value* PostfixExpr::getEmit() {
   IRGenerator &irgen = IRGenerator::Instance();
 
   llvm::Value *varVal = left->getEmit();
-  std::string operation = op->to_string();
   llvm::Value *newVal = NULL;
 
-  if (operation == "++")
+  if (op->IsOp("++"))
     newVal = irgen.PostFixIncrementInst(varVal);
   else
     newVal = irgen.PostFixDecrementInst(varVal);
 
-  // VarExpr *var = dynamic_cast<VarExpr*>(left);
-  // FieldAccess * swizzle = dynamic_cast<FieldAccess*>(left);
+  VarExpr *var = dynamic_cast<VarExpr*>(left);
+  FieldAccess * swizzle = dynamic_cast<FieldAccess*>(left);
 
-  // if (var)
-  //   Scope::current->AssignVar(var->GetIdentifier(), newVal);
-  // else if (swizzle)
-  //   Scope::current->AssignSwizzle(swizzle, newVal);
+  if (var) { 
+    Symbol *s = symtab->find(var->GetIdentifier()->GetName()); //find the var in symtable
+    (void) new llvm::StoreInst(newVal, s->value, "", irgen.GetBasicBlock());
+  }
+  else if (swizzle) {
+    Symbol *s = symtab->find(swizzle->GetIdentifier()->GetName()); //find the var in symtable
+    (void) new llvm::StoreInst(newVal, s->value, "", irgen.GetBasicBlock());
+  }
 
   return varVal;
 }
@@ -199,6 +320,47 @@ FieldAccess::FieldAccess(Expr *b, Identifier *f)
 void FieldAccess::PrintChildren(int indentLevel) {
     if (base) base->Print(indentLevel+1);
     field->Print(indentLevel+1);
+}
+
+llvm::Value* FieldAccess::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+
+    std::vector<llvm::Constant*> indices;
+    std::string swizzle = std::string(field->GetName());
+
+    for (int i = 0; i < swizzle.length(); ++i) {
+        int index;
+
+        if (swizzle.at(i) == 'x') {
+            index = 0;
+            break;
+        }
+        else if (swizzle.at(i) == 'y') {
+            index = 0;
+            break;
+        }
+        else if (swizzle.at(i) == 'z') {
+            index = 0;
+            break;
+        }
+        else if (swizzle.at(i) == 'w') {
+            index = 0;
+            break;
+        }
+        else
+            index = 0;
+
+        indices.push_back(llvm::ConstantInt::get(IRGenerator::Instance().GetIntType(), index, true));
+    }
+
+    llvm::Value *vec = base->getEmit();
+    if (indices.size() == 1)
+        return llvm::ExtractElementInst::Create(vec, indices[0], "", irgen.GetBasicBlock());
+
+    llvm::Value *mask = llvm::ConstantVector::get(indices);
+    llvm::Value *undef = llvm::UndefValue::get(vec->getType());
+
+    return new llvm::ShuffleVectorInst(vec, undef, mask, "", irgen.GetBasicBlock());
 }
 
 Call::Call(yyltype loc, Expr *b, Identifier *f, List<Expr*> *a) : Expr(loc)  {

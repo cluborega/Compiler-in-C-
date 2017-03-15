@@ -18,6 +18,7 @@
 #include "list.h"
 #include "ast_type.h"
 #include "irgen.h"
+#include "symtable.h"
 
 void yyerror(const char *msg);
 
@@ -137,7 +138,7 @@ class ArithmeticExpr : public CompoundExpr
     ArithmeticExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
     ArithmeticExpr(Operator *op, Expr *rhs) : CompoundExpr(op,rhs) {}
     const char *GetPrintNameForNode() { return "ArithmeticExpr"; }
-    virtual llvm::Value* getEmit() {return NULL;}
+    virtual llvm::Value* getEmit();
 };
 
 class RelationalExpr : public CompoundExpr 
@@ -153,7 +154,7 @@ class EqualityExpr : public CompoundExpr
   public:
     EqualityExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
     const char *GetPrintNameForNode() { return "EqualityExpr"; }
-    virtual llvm::Value* getEmit(){return NULL;}
+    virtual llvm::Value* getEmit();
 };
 
 class LogicalExpr : public CompoundExpr 
@@ -162,7 +163,7 @@ class LogicalExpr : public CompoundExpr
     LogicalExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
     LogicalExpr(Operator *op, Expr *rhs) : CompoundExpr(op,rhs) {}
     const char *GetPrintNameForNode() { return "LogicalExpr"; }
-    virtual llvm::Value* getEmit(){return NULL;}
+    virtual llvm::Value* getEmit();
 };
 
 class AssignExpr : public CompoundExpr 
@@ -225,7 +226,8 @@ class FieldAccess : public LValue
     FieldAccess(Expr *base, Identifier *field); //ok to pass NULL base
     const char *GetPrintNameForNode() { return "FieldAccess"; }
     void PrintChildren(int indentLevel);
-    virtual llvm::Value* getEmit() {return NULL;}
+    Identifier *GetIdentifier() {return field;}
+    virtual llvm::Value* getEmit();
 
 };
 
