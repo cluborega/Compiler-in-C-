@@ -47,19 +47,23 @@ VarExpr::VarExpr(yyltype loc, Identifier *ident) : Expr(loc) {
     this->id = ident;
 }
 
+//only returns loaded value
 llvm::Value* VarExpr::getEmit() {
     IRGenerator &irgen = IRGenerator::Instance();
     Symbol *s = symtab->find(id->GetName()); //find the var in symtable
 
+    cerr << "inside var_expr emit " <<endl;
+
     llvm::Value* llvm_value = NULL;
-    // llvm::Type* llvm_type = s->value->getType();
-    // Type *vdType = NULL;
     
     if(s){
+        cerr << "inside var_expr emit symbol name is " << id->GetName()<<endl;
         llvm_value = s->value; //get its value
         VarDecl* vd = dynamic_cast<VarDecl*>(s->decl);
-        this->type = vd->GetType();
+        if (vd) this->type = vd->GetType();
     }
+
+    cerr << "loading value in register in var_expr emit " <<endl;
 
     llvm::LoadInst* var_expr = new llvm::LoadInst(llvm_value, this->GetIdentifier()->GetName(), irgen.GetBasicBlock());
     return var_expr;
@@ -115,25 +119,6 @@ void CompoundExpr::PrintChildren(int indentLevel) {
    if (right) right->Print(indentLevel+1);
 }
 
-// llvm::Value *UnaryExpr::ValEmit() {
-//     IRGenerator &irgen = IRGenerator::Instance();
-
-//     llvm::Value *varVal = right->ValEmit();
-//     string operation = op->to_string();
-//     llvm::Value *newVal = NULL;
-
-//     if (operation == "+")
-//         newVal = varVal;
-//     else if (operation == "-")
-//         newVal = irgen.PreNegativeInst(varVal);  //GetOpWithScalar(value, '*', -1);
-//     else if (operation == "++")
-//         newVal = irgen.PostFixIncrementInst(varVal);
-//     else if (operation == "--")
-//         newVal = irgen.PostFixDecrementInst(varVal);
-
-//     return newVal;
-// }
-
 llvm::Value* EqualityExpr::getEmit() {
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::BasicBlock *bb = irgen.GetBasicBlock();
@@ -173,11 +158,9 @@ llvm::Value* EqualityExpr::getEmit() {
     return result;
 }
 
-bool isUnary(llvm::Value* val) {
-    return (llvm::UnaryInstruction::classof(val) || llvm::GlobalVariable::classof(val) || llvm::GetElementPtrInst::classof(val));
-}
-
 llvm::Value* ArithmeticExpr::getEmit() {
+
+    cerr << "in arithmetic expr "<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::BasicBlock *bb = irgen.GetBasicBlock();
 
@@ -186,55 +169,47 @@ llvm::Value* ArithmeticExpr::getEmit() {
     bool is_float_op;
 
     if (!left) { //Unary expr
-        llvm::Value *varRight = right->getEmit();
-        if (isUnary(varRight))
-            varRight = new llvm::LoadInst(varRight, "ld1", irgen.GetBasicBlock());
-        // llvm::Type* varRight_type = varRight->getType();
-        llvm::Constant* left_constant;
-        llvm::BinaryOperator *bOP;
+        llvm::Value *varVal = right->getEmit();
+        llvm::Value *newVal = NULL;
+        llvm::Value *value_to_assign = NULL;
 
-        is_float_op = varRight->getType()->isFloatTy();
-
-        if (op->IsOp("++")) {
-            if (is_float_op) {
-                left_constant = llvm::ConstantFP::get(irgen.GetFloatType(), 1.0);
-                bOP = llvm::BinaryOperator::CreateFAdd(left_constant, varRight, "fadd");
-            }
-            else{
-                left_constant = llvm::ConstantInt::get(irgen.GetIntType(), 1, true);
-                bOP = llvm::BinaryOperator::CreateAdd(left_constant, varRight, "iadd");
-            }
+        if (op->IsOp("+")){
+            newVal = varVal;
         }
-        else if (op->IsOp("--")){
-            if (is_float_op) {
-                left_constant = llvm::ConstantInt::get(irgen.GetFloatType(), 1.0);
-                bOP = llvm::BinaryOperator::CreateFAdd(left_constant, varRight, "fsub");
-            }
-            else{
-                left_constant = llvm::ConstantInt::get(irgen.GetIntType(), 1, true);
-                bOP = llvm::BinaryOperator::CreateAdd(left_constant, varRight, "isub");
-            }
+        else if (op->IsOp("-")){
+            bool is_float_op = varVal->getType()->isFloatTy() || varVal->getType()->isVectorTy();
+            llvmOP = is_float_op ? llvm::BinaryOperator::FMul : llvm::BinaryOperator::Mul;
 
+            llvm::Value *scalarVal;
+            scalarVal = is_float_op ? llvm::ConstantFP::get(IRGenerator::Instance().GetFloatType(), -1) : llvm::ConstantInt::get(IRGenerator::Instance().GetIntType(), -1, true);
+            
+            if (varVal->getType()->isVectorTy())
+                scalarVal = irgen.ToVector(scalarVal, varVal->getType()->getVectorNumElements());
+
+            newVal = llvm::BinaryOperator::Create(llvmOP, varVal, scalarVal, "", irgen.GetBasicBlock());
         }
-        else if (op->IsOp("-")) {
-            if (is_float_op) {
-                left_constant = llvm::ConstantInt::get(irgen.GetFloatType(), 0, true);
-                bOP = llvm::BinaryOperator::CreateFAdd(left_constant, varRight, "fsub");
-            }
-            else{
-                left_constant = llvm::ConstantInt::get(irgen.GetIntType(), 0, true);
-                bOP = llvm::BinaryOperator::CreateAdd(left_constant, varRight, "iadd");
-            }
+        else if (op->IsOp("++"))
+             newVal = irgen.PostFixIncrementInst(varVal);
+        else if (op->IsOp("--"))
+             newVal = irgen.PostFixDecrementInst(varVal);
 
+        //  VarExpr *var = dynamic_cast<VarExpr*>(right);
+          FieldAccess *swizzle = dynamic_cast<FieldAccess*>(right);
+          if (swizzle)
+            newVal = swizzle->getEmit();
+
+        // value_to_assign = newVal->getEmit();
+        VarExpr *is_var = dynamic_cast<VarExpr*>(right);
+        if (is_var) {
+            cerr << "in arith_expr checking is_var " <<endl;
+            int index = symtab->tables.size() - 1; 
+            Symbol* sym = symtab->find(is_var->GetIdentifier()->GetName());
+
+            if (sym)
+                newVal = new llvm::StoreInst(newVal, sym->value, true, irgen.GetBasicBlock());
         }
-        else {
-            return right->getEmit();
-        }
-
-        bb->getInstList().push_back(bOP);
-        new llvm::StoreInst(bOP, varRight, true, irgen.GetBasicBlock());
-
-        return bOP;
+        // // else if (var)
+        return newVal;
     }
 
     //for regular expressions 
@@ -277,6 +252,61 @@ llvm::Value* ArithmeticExpr::getEmit() {
 
     return llvm::BinaryOperator::Create(llvmOP, leftValue, rightValue, "", bb);
 }
+llvm::CmpInst::Predicate determinePredicate (bool b, Operator* op){
+    if (op->IsOp("<")){
+        if (b)
+            return llvm::CmpInst::FCMP_OLT; 
+        else 
+            return llvm::CmpInst::ICMP_SLT;
+    }
+    else if (op->IsOp(">")){
+        if (b) return llvm::CmpInst::FCMP_OGT;
+        else return llvm::CmpInst::ICMP_SGT;
+    }
+    else if (op->IsOp("<=")){
+        if (b) return llvm::CmpInst::FCMP_OLE;
+        else return llvm::CmpInst::ICMP_SLE;
+    }
+    if (b) return llvm::CmpInst::FCMP_OGE; 
+
+    return llvm::CmpInst::ICMP_SGE;
+
+}
+llvm::Value* RelationalExpr::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::BasicBlock *bb = irgen.GetBasicBlock();
+
+    cerr << "inside RelationalExpr " <<endl;
+
+    llvm::Value *leftValue = left->getEmit();
+    llvm::Value *rightValue = right->getEmit();
+
+    bool is_float_cmp = leftValue->getType()->isFloatTy();
+    llvm::CmpInst::OtherOps llvmOP; 
+    llvm::CmpInst::Predicate pred;
+
+    if (is_float_cmp)
+        llvmOP = llvm::FCmpInst::FCmp;
+    else
+        llvmOP = llvm::ICmpInst::ICmp;
+
+    pred = determinePredicate(is_float_cmp, op);
+
+    // if (op->IsOp("<")){
+    //     pred = is_float_cmp ? llvm::CmpInst::FCMP_OLT : llvm::CmpInst::ICMP_SLT;
+    // }
+    // else if (opStr == ">"){
+    //     pred = is_float_cmp ? llvm::CmpInst::FCMP_OGT : llvm::CmpInst::ICMP_SGT;
+    // }
+    // else if (opStr == "<="){
+    //     pred = is_float_cmp ? llvm::CmpInst::FCMP_OLE : llvm::CmpInst::ICMP_SLE;
+    // }
+    // else{
+    //     pred = is_float_cmp ? llvm::CmpInst::FCMP_OGE : llvm::CmpInst::ICMP_SGE;
+    // }
+
+    return llvm::CmpInst::Create(llvmOP, pred, leftValue, rightValue, "", bb);
+}
 
 llvm::Value* LogicalExpr::getEmit() {
   IRGenerator &irgen = IRGenerator::Instance();
@@ -296,12 +326,20 @@ llvm::Value* AssignExpr::getEmit() {
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Value *value_to_assign = NULL;
 
-    // llvm::Value* lhs = left->getEmit();
-    // llvm::Value* rhs = right->getEmit();
+     // llvm::Value* lhs = left->getEmit();
+     // llvm::Value* rhs = right->getEmit();
 
     if (op->IsOp("=")) {
         value_to_assign = right->getEmit();
+        VarExpr *is_var = dynamic_cast<VarExpr*>(left);
+        if (is_var) {
+            int index = symtab->tables.size() - 1; 
+            Symbol* sym = symtab->find(is_var->GetIdentifier()->GetName());
+
+            if (sym)
+                value_to_assign = new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
         // cerr << "assign val = " << value_to_assign << endl;
+        }
     }
     else {
         Operator *temp_Op = NULL;
@@ -316,27 +354,42 @@ llvm::Value* AssignExpr::getEmit() {
         else if (op->IsOp("/="))
             temp_Op = new Operator("/");
 
+
         ArithmeticExpr *arith_expr = new ArithmeticExpr(left, temp_Op, right);
         value_to_assign = arith_expr->getEmit();
-    }
+        VarExpr *is_var = dynamic_cast<VarExpr*>(left);
+        if (is_var) {
+            int index = symtab->tables.size() - 1; 
+            Symbol* sym = symtab->find(is_var->GetIdentifier()->GetName());
 
-    VarExpr *is_var = dynamic_cast<VarExpr*>(left);
-    if (is_var) {
-        ScopedTable *curr = symtab->currentScope(); //find the var in symtable
-        Symbol* s = curr->find(is_var->GetIdentifier()->GetName());
-        llvm::Type* varType = s->value->getType();
-
-        if (varType->isVectorTy()) {
-            int num = varType->getVectorNumElements();
-            value_to_assign = irgen.ToVector(value_to_assign, num);
+            if (sym){
+                value_to_assign = new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
+            }
         }
-
-        (void) new llvm::StoreInst(value_to_assign, s->value, true, irgen.GetBasicBlock());
     }
+
+     // VarExpr *is_var = dynamic_cast<VarExpr*>(left);
+     // if (is_var) value_to_assign = left->getEmit();
+    //     cerr << "in assign emit dynamic casted" << endl;
+    //     ScopedTable *curr = symtab->currentScope(); //find the var in symtable
+
+    //     Symbol* s = curr->find(is_var->GetIdentifier()->GetName());
+
+    //             if (!s) cerr << "symbol is null "<<endl;
+    //     llvm::Type* varType = s->value->getType();
+
+    //     if (varType->isVectorTy()) {
+    //         int num = varType->getVectorNumElements();
+    //         value_to_assign = irgen.ToVector(value_to_assign, num);
+    //     }
+
+    //     (void) new llvm::StoreInst(value_to_assign, s->value, true, irgen.GetBasicBlock());
+    //}
     return value_to_assign;
 }
 
 llvm::Value* PostfixExpr::getEmit() {
+    cerr << "in PostfixExpr expr "<<endl;
   IRGenerator &irgen = IRGenerator::Instance();
 
   llvm::Value *varVal = left->getEmit();

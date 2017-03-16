@@ -1,11 +1,6 @@
-int foo(float x)
+float foo(int x)
 {
-	int y;
-
-	y++;
-
-	bool z;
-	z = true;
-
-	return y;
+	float f;
+	f = 2.0;
+	return f;
 }

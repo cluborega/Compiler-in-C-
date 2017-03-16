@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-    // mod->dump();
+    mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -121,6 +121,10 @@ void StmtBlock::Emit() {
     symtab->push(); //creates a new scope
     ScopedTable *currScope = symtab->currentScope();
 
+    for (int i =0; i < decls->NumElements(); ++i) {
+        decls->Nth(i)->Emit();
+    }
+
     for (int i=0; i < stmts->NumElements(); ++i) {
        if(irgen.GetBasicBlock()->getTerminator()) break;//
 
@@ -131,9 +135,6 @@ void StmtBlock::Emit() {
       Create local variable (as in VarDecl::Emit)
       VarDecl emit should take it to AllocalInst in the else block
     */
-    for (int i =0; i < decls->NumElements(); ++i) {
-        decls->Nth(i)->Emit();
-    }
 
     symtab->pop(); //delete current scope
 }
@@ -206,20 +207,22 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) {
 
 void IfStmt::Emit(){
 
+    cerr << "inside if emit "<<endl;
+
     IRGenerator &irgen = IRGenerator::Instance();
 
     //create basicblocks for if and else 
-    llvm::BasicBlock *block_of_then = irgen.CreateEmptyBlock("if-body");
+    llvm::BasicBlock *block_of_then = irgen.CreateEmptyBlock("ThenBB");
     llvm::BasicBlock *block_of_else = NULL;
-    llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("if-end");
+    llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("footerBB");
 
     if (elseBody) {
-        // cerr << "ifstmtEmit:: elsebody exists" <<endl;
-        block_of_else = irgen.CreateEmptyBlock("else-body");
+         cerr << "ifstmtEmit:: elsebody exists" <<endl;
+        block_of_else = irgen.CreateEmptyBlock("ElseBB");
         (void) llvm::BranchInst::Create(block_of_then, block_of_else, test->getEmit(), irgen.GetBasicBlock());
     }
     else {
-        // cerr << "ifstmtEmit:: no else body" <<endl;
+        cerr << "ifstmtEmit:: no else body" <<endl;
         (void) llvm::BranchInst::Create(block_of_then, endBlock, test->getEmit(), irgen.GetBasicBlock());
     }
 

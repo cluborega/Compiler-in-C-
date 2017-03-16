@@ -78,74 +78,55 @@ void VarDecl::Emit(){
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
+    llvm::BasicBlock *bb = irgen.GetBasicBlock();
 
-
-    // Symbol* symbol_f = symtab->tables[index]->find(name);
-    // symbol_f.name;
-
-    // llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
-    // cerr << "sending this type. " << this->GetType() <<endl;
     llvm::Type *type = irgen.get_ll_type(this->GetType());
 
     char* name = this->GetIdentifier()->GetName();
+    llvm::Twine *twine = new llvm::Twine(name);
 
-    llvm::Twine *twine = new llvm::Twine(name);	
-    llvm::BasicBlock *bb = irgen.GetBasicBlock();
+    llvm::Function *fun = irgen.GetFunction();
 
-	if (symtab->isGlobalScope()) {  // getNUllValue(type) :: Constructor to create a '0' constant of arbitrary type
-        llvm::GlobalVariable *variable = new llvm::GlobalVariable(*mod, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
-        Symbol* sym = new Symbol(name, this, E_VarDecl, variable);
-        // sym->value = variable;
-        symtab->insert(*sym);
+    if(!fun){
+        cerr << "inside vardecl creating global var" <<endl;
+        llvm::GlobalVariable *llvm_Gl_var = llvm::cast<llvm::GlobalVariable>(mod->getOrInsertGlobal(name, type));
+        llvm_Gl_var->setConstant(false);
+
+        Symbol sym(id->GetName(), this, E_VarDecl, llvm_Gl_var);
+        symtab->insert(sym);
     }
-    else {  //if not global
-        // cerr << "vardecl local var " <<endl;
-        llvm::AllocaInst *allocInst = new llvm::AllocaInst(type, *twine, bb);
-        Symbol* sym = new Symbol(name, this, E_VarDecl, allocInst);
-        // sym->value = allocInst;
-        // cerr << "inserting symbol " <<sym->name <<endl;
-        symtab->insert(*sym);
+    else{
+        cerr << "inside vardecl creating local var" <<endl;
+        llvm::AllocaInst *local_var = new llvm::AllocaInst(type, *twine, fun->begin());
+        Symbol sym(name, this, E_VarDecl, local_var);
+        symtab->insert(sym);
     }
 }
 
 void FnDecl::Emit() {
 
-    // cerr << "entering funcdecl....." <<endl;
+    cerr << "entering funcdecl....." <<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule(NULL);
-    // create a function signature
+
     std::vector<llvm::Type *> argTypes;
-    // llvm::Type *intTy = irgen.GetIntType();
     Type* argType;
     for (int i = 0; i < formals->NumElements(); ++i) {
         argType = formals->Nth(i)->GetType();
 
         argTypes.push_back(irgen.get_ll_type(argType));
     }
-    // llvm::Type *declType = irgen.get_ll_type(this->GetType());
-    // argTypes.push_back(declType);
 
     llvm::ArrayRef<llvm::Type *> argArray(argTypes);
     llvm::Type *retType = irgen.get_ll_type(returnType);
     // cerr<<"fndecl::function return type is " << returnType <<endl;
     llvm::FunctionType *funcTy = llvm::FunctionType::get(retType, argArray, false);
      
-    // symtab->funcFlag = true;
-
-    // cerr << "fndecl:: creating new symbol " << this->GetIdentifier()->GetName() <<endl;
-
     // llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("foo", intTy, intTy, (Type *)0));
     llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction(id->GetName(), funcTy));
     irgen.SetFunction(f);
-    // sym->value = f;
     Symbol* sym = new Symbol(this->GetIdentifier()->GetName(), this, E_FunctionDecl, f);
-    // cerr << "fndecl::inserting symbol " << sym->name <<endl;
     symtab->insert(*sym);
-
-
-    // llvm::Argument *arg = f->arg_begin();
-    // arg->setName("x");
-
   
     // insert a block into the runction
     llvm::LLVMContext *context = irgen.GetContext();
@@ -153,7 +134,7 @@ void FnDecl::Emit() {
     irgen.SetBasicBlock(entry_bb);
 
     //push a new scope
-    symtab->push();
+    // symtab->push();
 
     llvm::Argument *arg = f->arg_begin(); //iterator 
     // add formal parameters into scope
@@ -162,22 +143,10 @@ void FnDecl::Emit() {
     for (int i = 0; arg != f->arg_end() && i < formals->NumElements(); ++i, ++arg) {
         VarDecl* parameter = formals->Nth(i);
         char* name = parameter->GetIdentifier()->GetName();
-        // cout << "parameter name is " << name << endl;
-        // cerr << "parameter type is " << parameter->GetType() <<endl;;
         arg->setName(name);
-        // llvm::BasicBlock *bb1 = irgen->GetBasicBlock();
         parameter->Emit();
-
-         //  varDecl should assign value and everything by now
-         // *  So just search for the symbol to get the scope and store the instance ??
-         
-
-         // int index = symtab->tables.size() - 1; // get the current scope
-         // Symbol* symbol_f = symtab->tables[index]->find(name); //find the symbol
-         // (void) new llvm::StoreInst(arg, symbol_f->value, "", irgen.GetBasicBlock());
      }
 
-    //create new basic block
     llvm::BasicBlock *next_bb = llvm::BasicBlock::Create(*(irgen.GetContext()), "next", f);
     irgen.SetBasicBlock(next_bb);
     
@@ -189,64 +158,5 @@ void FnDecl::Emit() {
 
      body->Emit();
 
-    // if(this->body != NULL){
-    //     StmtBlock *block = dynamic_cast<StmtBlock*>(this->body);
-
-    //     if(block != NULL){
-    //         block->Emit();
-    //     }
-    //     else{
-    //         this->body->Emit();
-    //     }
-
      llvm::BranchInst *branch = llvm::BranchInst::Create(next_bb, entry_bb);
-
-    // symtab->pop();
-
-    // body->Emit();
-/**
-    // create a return instruction
-    llvm::Value *val = llvm::ConstantInt::get(intTy, 1);
-    llvm::Value *sum = llvm::BinaryOperator::CreateAdd(arg, val, "", bb);
-    llvm::ReturnInst::Create(*context, sum, bb);
-
-**/
-
-    // write the BC into standard output
-     llvm::WriteBitcodeToFile(mod, llvm::outs());
-/*
-
-• Constant* getOrInsertFunction (StringRef Name, FunctionType *T)
-• Module->getOrInsertFunction()
-• Specifying FunctionType:
-• FunctionType*get(Type*Result,ArrayRef<Type*>Params,boolisVarArg) • NeedtocreateParamsfirst.Gothroughtheformalslistandcreateit.
-• Set names for arguments/formals
-• http://llvm.org/docs/doxygen/html/classllvm_1_1Argument.html
-• Create BasicBlock(s) ?
-• http://llvm.org/docs/doxygen/html/classllvm_1_1BasicBlock.html
-• BasicBlock*Create(LLVMContext&Context,constTwine&Name="",Function
-  *Parent=nullptr, BasicBlock *InsertBefore=nullptr)
-
-
-*/
-    // llvm::Module *mod = irgen->GetOrCreateModule("foo.bc");
-    // llvm::Type *type = irgen->get_ll_type(this->GetType());
-
-    // std::vector<llvm::Type *> argTypes;
-    // Type *argType;
-
-    //for (int i = 0; i < formals->NumElements(); ++i) {
-     //   argType = formals->Nth(i)->GetType();
-     //   argTypes.push_back(irgen->get_ll_type(argType));
-    //}
-
-
-	// llvm::Value* val = NULL;
-	// llvm::Value* init = NULL;
-
-    //Need to create Params first
-    // List<VarDecl*> params = formals;
-     // for (int i = 0; )
-	
-	//return val;
-}
+ }

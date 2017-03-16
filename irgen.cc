@@ -137,11 +137,11 @@ llvm::Value *IRGenerator::PostFixDecrementInst(llvm::Value *value) {
 
   llvm::Value *scalarVal;
   if (is_float_op){
-    op = llvm::BinaryOperator::FAdd;
+    op = llvm::BinaryOperator::FSub;
     scalarVal = llvm::ConstantFP::get(GetFloatType(), scalar);
   } 
   else{
-    op = llvm::BinaryOperator::Add;
+    op = llvm::BinaryOperator::Sub;
     scalarVal = llvm::ConstantInt::get(GetIntType(), (int)scalar, true);
   }
 
