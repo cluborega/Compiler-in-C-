@@ -6,6 +6,7 @@ define i32 @foo(float %x) {
 entry:
   %arg0 = alloca float
   %y = alloca i32
+  %z = alloca i1
   br label %next
 
 next:                                             ; preds = %entry
@@ -13,6 +14,7 @@ next:                                             ; preds = %entry
   %0 = load i32* %y
   %1 = add i32 %0, 1
   store i32 %1, i32* %y
+  store i1 true, i1* %z
   %2 = load i32* %y
   ret i32 %2
 }

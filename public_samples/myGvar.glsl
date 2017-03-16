@@ -2,7 +2,7 @@ int foo(float x)
 {
 	int y;
 
-	y += 1;
+	y++;
 
 	bool z;
 	z = true;

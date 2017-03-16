@@ -112,6 +112,7 @@ class Operator : public Node
     
   public:
     Operator(yyltype loc, const char *tok);
+    Operator(const char *tok);
     const char *GetPrintNameForNode() { return "Operator"; }
     void PrintChildren(int indentLevel);
     friend ostream& operator<<(ostream& out, Operator *o) { return out << o->tokenString; }

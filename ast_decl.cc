@@ -76,9 +76,9 @@ void VarDecl::Emit(){
     // cerr << "entering vardecl "<<endl;
 
     IRGenerator &irgen = IRGenerator::Instance();
-    llvm::Module *mod = irgen.GetOrCreateModule(NULL);
+    llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
-    Symbol* sym = new Symbol(this->GetIdentifier()->GetName(), this, E_VarDecl, NULL);
+
 
     // Symbol* symbol_f = symtab->tables[index]->find(name);
     // symbol_f.name;
@@ -87,20 +87,22 @@ void VarDecl::Emit(){
     // cerr << "sending this type. " << this->GetType() <<endl;
     llvm::Type *type = irgen.get_ll_type(this->GetType());
 
+    char* name = this->GetIdentifier()->GetName();
 
-    llvm::Twine *twine = new llvm::Twine(sym->name);	
+    llvm::Twine *twine = new llvm::Twine(name);	
     llvm::BasicBlock *bb = irgen.GetBasicBlock();
 
-	if (symtab->isGlobalScope()) {
-        llvm::GlobalVariable *variable = new llvm::GlobalVariable(*mod, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), sym->name);
-
-        sym->value = variable;
+	if (symtab->isGlobalScope()) {  // getNUllValue(type) :: Constructor to create a '0' constant of arbitrary type
+        llvm::GlobalVariable *variable = new llvm::GlobalVariable(*mod, type, false, llvm::GlobalValue::ExternalLinkage, llvm::Constant::getNullValue(type), name);
+        Symbol* sym = new Symbol(name, this, E_VarDecl, variable);
+        // sym->value = variable;
         symtab->insert(*sym);
     }
     else {  //if not global
         // cerr << "vardecl local var " <<endl;
         llvm::AllocaInst *allocInst = new llvm::AllocaInst(type, *twine, bb);
-        sym->value = allocInst;
+        Symbol* sym = new Symbol(name, this, E_VarDecl, allocInst);
+        // sym->value = allocInst;
         // cerr << "inserting symbol " <<sym->name <<endl;
         symtab->insert(*sym);
     }
@@ -151,7 +153,7 @@ void FnDecl::Emit() {
     irgen.SetBasicBlock(entry_bb);
 
     //push a new scope
-    // symtab->push();
+    symtab->push();
 
     llvm::Argument *arg = f->arg_begin(); //iterator 
     // add formal parameters into scope
@@ -166,9 +168,9 @@ void FnDecl::Emit() {
         // llvm::BasicBlock *bb1 = irgen->GetBasicBlock();
         parameter->Emit();
 
-        /*  varDecl should assign value and everything by now
-         *  So just search for the symbol to get the scope and store the instance ??
-         */
+         //  varDecl should assign value and everything by now
+         // *  So just search for the symbol to get the scope and store the instance ??
+         
 
          // int index = symtab->tables.size() - 1; // get the current scope
          // Symbol* symbol_f = symtab->tables[index]->find(name); //find the symbol

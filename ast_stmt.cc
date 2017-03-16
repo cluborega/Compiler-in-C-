@@ -51,7 +51,6 @@ void Program::Emit() {
         }
     }
 
-    mod->dump();
     llvm::WriteBitcodeToFile(mod, llvm::outs());
 
     // cerr << "in program emit "<<endl;
@@ -82,6 +81,7 @@ void Program::Emit() {
 
 
     //uncomment the next line to generate the human readable/assembly file
+    // mod->dump();
     // mod->dump();
 }
 
@@ -120,39 +120,22 @@ void StmtBlock::Emit() {
     
     symtab->push(); //creates a new scope
     ScopedTable *currScope = symtab->currentScope();
+
+    for (int i=0; i < stmts->NumElements(); ++i) {
+       if(irgen.GetBasicBlock()->getTerminator()) break;//
+
+       stmts->Nth(i)->Emit();     
+    }
     /*
       For each element 'a' in formals:
       Create local variable (as in VarDecl::Emit)
       VarDecl emit should take it to AllocalInst in the else block
     */
     for (int i =0; i < decls->NumElements(); ++i) {
-        // cerr <<" name of var "<<decls->Nth(i)->GetType()<<endl;
         decls->Nth(i)->Emit();
-
     }
 
-    for (int i=0; i < stmts->NumElements(); ++i) {
-        /* Returns a pointer to the terminator instruction that appears 
-          at the end of the BasicBlock. If there is no terminator instruction, 
-          or if the last instruction in the block is not a terminator, 
-          then a null pointer is returned.*/
-       if(irgen.GetBasicBlock()->getTerminator()) break;//
-
-       stmts->Nth(i)->Emit();
-        
-
-    }
-
-    // if(hasReturn()){
-        // symtab->setReturn(true);
-        //TODO
-        //what to do when there is return?? or no return??
-
-    // }
-    // else
-        // symtab->setReturn(false);
-
-    // symtab->pop(); //delete current scope
+    symtab->pop(); //delete current scope
 }
 
 DeclStmt::DeclStmt(Decl *d) {
