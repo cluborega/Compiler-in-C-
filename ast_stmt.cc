@@ -24,13 +24,7 @@ void Program::PrintChildren(int indentLevel) {
 }
 
 void Program::Emit() {
-    // TODO:
-    // This is just a reference for you to get started
-    //
-    // You can use this as a template and create Emit() function
-    // for individual node to fill in the module structure and instructions.
-    //
-   
+
    /*
     llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
@@ -115,7 +109,6 @@ bool StmtBlock::hasReturn() {
 }
 
 void StmtBlock::Emit() {
-    // cerr << "stmt block "<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     
     symtab->push(); //creates a new scope
@@ -176,160 +169,61 @@ void ForStmt::PrintChildren(int indentLevel) {
 }
 
 void ForStmt::Emit(){
+	symtab->push();
+	
 	IRGenerator *irgen = &(IRGenerator::Instance());
-		
-	/*
-	llvm::BasicBlock *fb = irgen-> CreateAndPushBlock("Footer Block");
-	llvm::BasicBlock *sb = irgen ->CreateAndPushBlock("Step Block");
-	llvm::BasicBlock *bb = irgen->CreateAndPushBlock("Body Block");
-	llvm::BasicBlock *hb = irgen->CreateAndPushBlock("Header Block");
-*/
-	cout << "before blocks" <<endl;
-	
-	
+
 	llvm::BasicBlock *fb = llvm::BasicBlock::Create(*irgen->GetContext(), "Footer block", irgen->GetFunction());
 	llvm::BasicBlock *sb = llvm::BasicBlock::Create(*irgen->GetContext(), "Step block", irgen->GetFunction());
 	llvm::BasicBlock *bb = llvm::BasicBlock::Create(*irgen->GetContext(), "Body block", irgen->GetFunction());
 	llvm::BasicBlock *hb = llvm::BasicBlock::Create(*irgen->GetContext(), "Header block", irgen->GetFunction());
-		
-	//footer step, body, header
+
+    init->Emit();
+    
+	// branch, start header
+	llvm::BranchInst::Create(hb,irgen->GetBasicBlock());
+    
 	
-	//push?
-	//irgen->breakBlockStack.push(sb);
-	//irgen->continueBlockStack.push(fb);
-	
-	
-	cout << "before emit\n" << endl;
-	init->Emit();
-	
-	cout << "after emit init\n" << endl;
-	
-	llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
-	//head block is popped
+
+	//irgen for head block
 	irgen->SetBasicBlock(hb);
-	
+     
 	if (test){
-		test->Emit();
-		llvm::BranchInst::Create(fb, irgen->GetBasicBlock());
+		test->Emit(); //emit test
+		llvm::BranchInst::Create(fb,irgen->GetBasicBlock()); // jump to footer
+		
+		llvm::BasicBlock *basic = irgen->GetBasicBlock();
+		if (basic->getTerminator() == NULL)
+			llvm::BranchInst::Create(bb, fb, test->getEmit(), irgen->GetBasicBlock());
+		
 	}
 	else{ // infinite loop
 		llvm::BasicBlock *curPos = irgen->GetBasicBlock();
 		llvm::BranchInst::Create(fb, curPos);
 	}
+			
 	
-	if (body){
-		//pop body block
-		if (step){
-			irgen->breakBlockStack.push(sb);
-		}
-		else{
-			irgen->continueBlockStack.push(hb);
-		}
-		
-		//BCTarget target (fb, step ? sb : hb);
-		//irgen->PushBCTarget(target);
+    irgen->SetBasicBlock(bb);    
+	if (body){	
 		body->Emit();
-		//pop
+		
+		llvm::BasicBlock *basic = irgen->GetBasicBlock();
+		if (basic->getTerminator() == NULL)
+			llvm::BranchInst::Create(sb, irgen->GetBasicBlock());
 	}
 	
-	//check for terminator instruction
-	llvm::BasicBlock *curPos = irgen->GetBasicBlock();
-	if (curPos->getTerminator() == NULL){
-		llvm::BranchInst::Create(sb, curPos);
-	}
-	
-	
-	//branch for jump - basicblock and branch
-	// headblock is popbasic
-	//setting to header
-	
-	// chekc if test not null
-	   //conditional - get emit of test
-	   // jump to foot bb
-	 // else infinite loop
-	    // get basic block
-		// create branch inst
-		
-	// if body exist
-	  // pop body block
-	  // BCTarget target(footBB, step ? stepBB : headBB);
-	  //irgen ->PushBCTarget(target)
-	  //emit on body
-	  //pop it
-	  
-	  //basicblock cur = getbasic
-	  // if curpos->getterminator = null
-	    // cerate branchinst from header to curpos
-		
-	
-	
-	
-	
-	/*
-	IRGenerator *irgen = &(IRGenerator::Instance());
-	
-	if(step != NULL) {
-		llvm::BasicBlock *hb = llvm::BasicBlock::Create(*irgen->GetContext(), "Header block", irgen->GetFunction());
-		llvm::BasicBlock *sb = llvm::BasicBlock::Create(*irgen->GetContext(), "Step block", irgen->GetFunction());
-		llvm::BasicBlock *fb = llvm::BasicBlock::Create(*irgen->GetContext(), "Footer block", irgen->GetFunction());
-		llvm::BasicBlock *bb = llvm::BasicBlock::Create(*irgen->GetContext(), "Body block", irgen->GetFunction());
-
-		irgen->breakBlockStack.push(sb);
-		irgen->continueBlockStack.push(fb);
-
-		init->Emit();
-		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
-
-		irgen->SetBasicBlock(hb);
-		
-		test->Emit();
-		
-		llvm::BranchInst::Create(bb, sb, test->getEmit(), hb);
-
-		irgen->SetBasicBlock(bb);
-		body->Emit();
-		llvm::BranchInst::Create(fb, irgen->GetBasicBlock());
-		irgen->SetBasicBlock(fb);
-		
-		
+	irgen->SetBasicBlock(sb);    
+	if (step){
 		step->Emit();
-		llvm::BranchInst::Create(hb, fb);
-
-		irgen->breakBlockStack.pop();
-		irgen->continueBlockStack.pop();
 		
 		irgen->SetBasicBlock(sb);
-
+		llvm::BasicBlock *basic = irgen->GetBasicBlock();
+		if (basic->getTerminator() == NULL)
+			llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
 	}
-	else if(step == NULL) {
-		llvm::BasicBlock *hb = llvm::BasicBlock::Create(*irgen->GetContext(), "Header block", irgen->GetFunction());
-		llvm::BasicBlock *bb = llvm::BasicBlock::Create(*irgen->GetContext(), "Body block", irgen->GetFunction());
-		llvm::BasicBlock *sb = llvm::BasicBlock::Create(*irgen->GetContext(), "Footer block", irgen->GetFunction());
-
-
-		irgen->breakBlockStack.push(sb);
-		irgen->continueBlockStack.push(hb);
-
-		init->Emit();
-		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
-
-		irgen->SetBasicBlock(hb);
-		
-		test->Emit();
-		
-		llvm::BranchInst::Create(bb, sb, test->getEmit(), hb);
-
-		irgen->SetBasicBlock(bb);
-		body->Emit();
-		llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
-
-
-		irgen->breakBlockStack.pop();
-		irgen->continueBlockStack.pop();
-
-		irgen->SetBasicBlock(sb);
-	}
-	*/
+	
+	irgen->SetBasicBlock(fb);
+	symtab->pop();
 }
 
 
@@ -339,7 +233,45 @@ void WhileStmt::PrintChildren(int indentLevel) {
 }
 
 void WhileStmt::Emit(){
+	symtab->push();
+	
+	IRGenerator *irgen = &(IRGenerator::Instance());
+	
 
+    llvm::BasicBlock * hb = llvm::BasicBlock::Create(*irgen->GetContext(), "headBlock", irgen->GetFunction());
+    llvm::BasicBlock * fb = llvm::BasicBlock::Create(*irgen->GetContext(), "footBlock", irgen->GetFunction());
+    llvm::BasicBlock * bb = llvm::BasicBlock::Create(*irgen->GetContext(), "bodyBlock", irgen->GetFunction());
+    llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
+
+	
+	// header block
+    irgen->SetBasicBlock(hb);
+    
+	if (test)
+		test->Emit();
+    
+	llvm::BasicBlock *basic = irgen->GetBasicBlock();
+	if(basic->getTerminator() == NULL)
+    {
+        llvm::BranchInst::Create(bb, fb, test->getEmit(), irgen->GetBasicBlock()); 
+    }
+
+	//body block
+    irgen->SetBasicBlock(bb);
+    
+	if (body)
+		body->Emit();
+	
+	basic = irgen->GetBasicBlock();
+    if(basic->getTerminator() == NULL)
+    {
+        llvm::BranchInst::Create(hb, irgen->GetBasicBlock()); 
+    }
+
+
+    irgen->SetBasicBlock(fb);
+    symtab->pop();
+	
 }
 
 void BreakStmt::Emit() {
