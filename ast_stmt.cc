@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-    // mod->dump();
+     //mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -115,11 +115,11 @@ bool StmtBlock::hasReturn() {
 }
 
 void StmtBlock::Emit() {
-    // cerr << "stmt block "<<endl;
+    // cerr << " getting inside stmt block "<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     
     symtab->push(); //creates a new scope
-    ScopedTable *currScope = symtab->currentScope();
+    // ScopedTable *currScope = symtab->currentScope();
 
     for (int i =0; i < decls->NumElements(); ++i) {
         decls->Nth(i)->Emit();
@@ -180,19 +180,20 @@ void ForStmt::Emit(){
     llvm::BasicBlock *bodyBlock = irgen.CreateEmptyBlock("for-body");
     llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("for-end");
 
-    cerr << "inside for emit "<<endl;
+     cerr << "inside for emit "<<endl;
 
     irgen.loopStack.push(bodyBlock);
     irgen.breakBlockStack.push(endBlock);
     init->Emit();
 
-    cerr << "emitting inti "<<endl;
+     // cerr << "emitting inti "<<endl;
 
     (void)llvm::BranchInst::Create(bodyBlock, endBlock, test->getEmit(), irgen.GetBasicBlock());
 
     irgen.SetBasicBlock(bodyBlock);
 
     body->Emit();
+    // cerr<< "body emit " <<endl;
 
     if (!irgen.GetBasicBlock()->getTerminator()){
         (void)llvm::BranchInst::Create(bodyBlock, endBlock, test->getEmit(), irgen.GetBasicBlock());
@@ -331,6 +332,60 @@ void SwitchStmt::PrintChildren(int indentLevel) {
 }
 
 void SwitchStmt::Emit(){
+  IRGenerator &irgen = IRGenerator::Instance();
+  llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("switch-end");
+  llvm::BasicBlock *defaultBlock = irgen.CreateEmptyBlock("default-block");
+
+  irgen.breakBlockStack.push(endBlock);
+
+  int numCases = 0;
+
+  for (int i = 0; i < cases->NumElements(); ++i) {
+    if (dynamic_cast<Case*>(cases->Nth(i)))
+      ++numCases;
+  }
+
+  llvm::SwitchInst *switchInst = llvm::SwitchInst::Create(expr->getEmit(), 
+                                                          defaultBlock, 
+                                                          numCases,
+                                                          irgen.GetBasicBlock()); 
+
+
+  for (int i = 0; i < cases->NumElements(); ++i) {
+    Case *caseStmt = dynamic_cast<Case*>(cases->Nth(i));
+    Default *defStmt = dynamic_cast<Default*>(cases->Nth(i));
+    
+    if (caseStmt) {
+      llvm::BasicBlock *caseBlock = irgen.CreateEmptyBlock("case-block");
+      switchInst->addCase(llvm::cast<llvm::ConstantInt>(caseStmt->GetLabel()->getEmit()), caseBlock);
+
+      if (!irgen.GetBasicBlock()->getTerminator())
+        (void) llvm::BranchInst::Create(caseBlock, irgen.GetBasicBlock());
+
+      irgen.SetBasicBlock(caseBlock);
+      caseStmt->GetStmt()->Emit();
+    }
+    else if (defStmt) {
+      if (!irgen.GetBasicBlock()->getTerminator())
+        (void) llvm::BranchInst::Create(defaultBlock, irgen.GetBasicBlock());
+
+      defaultBlock->moveAfter(irgen.GetBasicBlock());
+      irgen.SetBasicBlock(defaultBlock);
+      defStmt->GetStmt()->Emit();
+    }
+    else {
+      if (!irgen.GetBasicBlock()->getTerminator())
+        cases->Nth(i)->Emit();
+    }
+  }
+
+  if (!defaultBlock->getTerminator())
+    (void) llvm::BranchInst::Create(endBlock, defaultBlock);
+
+  endBlock->moveAfter(irgen.GetBasicBlock());
+  irgen.SetBasicBlock(endBlock);
+
+  irgen.breakBlockStack.pop();
 
 }
 

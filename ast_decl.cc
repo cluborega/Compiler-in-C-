@@ -84,8 +84,10 @@ void VarDecl::Emit(){
     llvm::Type *ll_type = irgen.get_ll_type(this->GetType());
 
     ArrayType *arr_type = dynamic_cast<ArrayType *>(this->GetType());
-    if(arr_type) 
+    if(arr_type) {
+        // cerr << "declaring array " << name << "size " << arr_type->GetArraySize()<<endl;
         ll_type =  llvm::ArrayType::get(irgen.get_ll_type(arr_type->GetElemType()), arr_type->GetArraySize());
+    }
 
 
     llvm::Function *fun = irgen.GetFunction();
@@ -98,9 +100,12 @@ void VarDecl::Emit(){
         symtab->insert(*sym);
     }
     else{
+        // cerr <<"allocating local var " << name <<endl;
         llvm::AllocaInst *local_var = new llvm::AllocaInst(ll_type, name, fun->begin());
         Symbol* sym = new Symbol(name, this, E_VarDecl, local_var);
         symtab->insert(*sym);
+        // cerr << "inserted symbol ";
+        // cerr << sym->name << endl;
     }
 }
 
@@ -144,6 +149,7 @@ void FnDecl::Emit() {
         char* name = parameter->GetIdentifier()->GetName();
         // llvm::Twine *twine = new llvm::Twine(name);
         arg->setName(name);
+        // cerr << "inside funcdecl calling parameter emit " <<endl;
         parameter->Emit();
      }
 
@@ -156,7 +162,8 @@ void FnDecl::Emit() {
         (void) new llvm::StoreInst(arg, it, next_bb);
     }
 
-     body->Emit();
+    // cerr << "inside funcdecl going body emit now "<<endl;
+    body->Emit();
 
-     llvm::BranchInst *branch = llvm::BranchInst::Create(next_bb, entry_bb);
+    llvm::BranchInst *branch = llvm::BranchInst::Create(next_bb, entry_bb);
  }

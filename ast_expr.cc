@@ -17,6 +17,7 @@ void IntConstant::PrintChildren(int indentLevel) {
 }
 
 llvm::Value* IntConstant::getEmit() {
+    // cerr << "in Intconstant emit with value "<<this->value <<endl;
   return llvm::ConstantInt::get(IRGenerator::Instance().GetIntType(), this->value, true);
 }
 
@@ -53,6 +54,8 @@ llvm::Value* VarExpr::getEmit() {
     Symbol *s = symtab->find(id->GetName()); //find the var in symtable
 
     llvm::Value* llvm_value = NULL;
+
+    // cerr << "in var_expr emit for " << s->name <<endl;
     
     if(s){
         llvm_value = s->value; //get its value
@@ -60,7 +63,7 @@ llvm::Value* VarExpr::getEmit() {
         if (vd) this->type = vd->GetType();
     }
 
-
+    // cerr << "loading " <<s->name <<endl;
     llvm::LoadInst* var_expr = new llvm::LoadInst(llvm_value, this->GetIdentifier()->GetName(), irgen.GetBasicBlock());
     return var_expr;
 }
@@ -331,14 +334,29 @@ llvm::Value* LogicalExpr::getEmit() {
 llvm::Value* AssignExpr::getEmit() {
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Value *value_to_assign = NULL;
-    Symbol* sym = NULL;
+    llvm::Value* leftAddress;
+    Symbol* sym = new Symbol();
+    // Symbol s;
+    char checkA[] = "ArrayAccess";
+    const char* typeLeft = left->GetPrintNameForNode();
 
      // llvm::Value* lhs = left->getEmit();
      // llvm::Value* rhs = right->getEmit();
 
+    // cerr << "in assign expr "<<endl;
 
     if (op->IsOp("=")) {
+        // cerr << "operator is = going right->emit, right = ";
+
         value_to_assign = right->getEmit();
+        if(strcmp(checkA, typeLeft)==0){
+            leftAddress = left->getEmit();
+            sym->value = leftAddress;
+        }
+        //     vecChk = false; 
+        // } else {
+        //     leftAddress = left->EmitAddr();
+        // }
         
         // if (sym)
             // value_to_assign = new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
@@ -403,12 +421,16 @@ llvm::Value* AssignExpr::getEmit() {
          // sym = symtab->find(is_var->GetIdentifier()->GetName());
     }
     else if (is_var) {
+        // cerr << "inside if is_var to assign ";
         // int index = symtab->tables.size() - 1; 
         sym = symtab->find(is_var->GetIdentifier()->GetName());
         llvm::Type* varType = sym->value->getType();
+        // cerr << sym->name <<endl;
         if (varType->isVectorTy())
             value_to_assign = irgen.checkLLVMvec(value_to_assign, varType->getVectorNumElements());
     }
+    // cerr << "symbol value is ";
+    // cerr << sym->value<<endl;
     (void) new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
 
      // VarExpr *is_var = dynamic_cast<VarExpr*>(left);
@@ -483,9 +505,15 @@ llvm::Value* ArrayAccess::getEmit(){
 
     IRGenerator &irgen = IRGenerator::Instance();
 
-    llvm::Value *llvmBase = base->getEmit();  //actual array
-    llvm::Value *index = subscript->getEmit();
+    VarExpr *baseExpr = dynamic_cast<VarExpr*>(base);
 
+    // llvm::Value *llvmBase = base->getEmit();  //actual array
+    // llvm::Value *index = subscript->getEmit();
+
+    // cerr << "in array access "<<endl;
+
+    Symbol* sym = symtab->find(baseExpr->GetIdentifier()->GetName());
+    llvm::Value* symTableLook = sym->value;
     // char* name;
     // VarExpr *ver = dynamic_cast<VarExpr*>(base);
     // if (ver)
@@ -496,12 +524,14 @@ llvm::Value* ArrayAccess::getEmit(){
 
     vector<llvm::Value*> array_access;
     array_access.push_back(llvm::ConstantInt::get(irgen.GetIntType(), 0)); //index starts at 0
-    array_access.push_back(index);
+    array_access.push_back(subscript->getEmit());
 
     llvm::ArrayRef<llvm::Value*> argarray(array_access);
-    return llvm::GetElementPtrInst::CreateInBounds(llvmBase, argarray, llvmBase->getName(), irgen.GetBasicBlock());
+    llvm::Value* newVal = llvm::GetElementPtrInst::Create(symTableLook, argarray, "arrayaccess" , irgen.GetBasicBlock());
+    // return llvm::GetElementPtrInst::CreateInBounds(llvmBase, argarray, llvmBase->getName(), irgen.GetBasicBlock());
+    return newVal;
 }
-     
+
 FieldAccess::FieldAccess(Expr *b, Identifier *f) 
   : LValue(b? Join(b->GetLocation(), f->GetLocation()) : *f->GetLocation()) {
     Assert(f != NULL); // b can be be NULL (just means no explicit base)
