@@ -73,39 +73,39 @@ void FnDecl::PrintChildren(int indentLevel) {
 
 void VarDecl::Emit(){
 
-    // cerr << "entering vardecl "<<endl;
-
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
     llvm::BasicBlock *bb = irgen.GetBasicBlock();
 
-    llvm::Type *type = irgen.get_ll_type(this->GetType());
-
     char* name = this->GetIdentifier()->GetName();
     llvm::Twine *twine = new llvm::Twine(name);
+
+    llvm::Type *ll_type = irgen.get_ll_type(this->GetType());
+
+    ArrayType *arr_type = dynamic_cast<ArrayType *>(this->GetType());
+    if(arr_type) 
+        ll_type =  llvm::ArrayType::get(irgen.get_ll_type(arr_type->GetElemType()), arr_type->GetArraySize());
+
 
     llvm::Function *fun = irgen.GetFunction();
 
     if(!fun){
-        cerr << "inside vardecl creating global var" <<endl;
-        llvm::GlobalVariable *llvm_Gl_var = llvm::cast<llvm::GlobalVariable>(mod->getOrInsertGlobal(name, type));
+        llvm::GlobalVariable *llvm_Gl_var = llvm::cast<llvm::GlobalVariable>(mod->getOrInsertGlobal(name, ll_type));
         llvm_Gl_var->setConstant(false);
 
-        Symbol sym(id->GetName(), this, E_VarDecl, llvm_Gl_var);
-        symtab->insert(sym);
+        Symbol* sym = new Symbol(id->GetName(), this, E_VarDecl, llvm_Gl_var);
+        symtab->insert(*sym);
     }
     else{
-        cerr << "inside vardecl creating local var" <<endl;
-        llvm::AllocaInst *local_var = new llvm::AllocaInst(type, *twine, fun->begin());
-        Symbol sym(name, this, E_VarDecl, local_var);
-        symtab->insert(sym);
+        llvm::AllocaInst *local_var = new llvm::AllocaInst(ll_type, name, fun->begin());
+        Symbol* sym = new Symbol(name, this, E_VarDecl, local_var);
+        symtab->insert(*sym);
     }
 }
 
 void FnDecl::Emit() {
 
-    cerr << "entering funcdecl....." <<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule(NULL);
 
@@ -119,7 +119,6 @@ void FnDecl::Emit() {
 
     llvm::ArrayRef<llvm::Type *> argArray(argTypes);
     llvm::Type *retType = irgen.get_ll_type(returnType);
-    // cerr<<"fndecl::function return type is " << returnType <<endl;
     llvm::FunctionType *funcTy = llvm::FunctionType::get(retType, argArray, false);
      
     // llvm::Function *f = llvm::cast<llvm::Function>(mod->getOrInsertFunction("foo", intTy, intTy, (Type *)0));
@@ -136,13 +135,14 @@ void FnDecl::Emit() {
     //push a new scope
     // symtab->push();
 
-    llvm::Argument *arg = f->arg_begin(); //iterator 
+    llvm::Function::arg_iterator arg = f->arg_begin();
     // add formal parameters into scope
     List<VarDecl*> *formals = this->GetFormals();
 
     for (int i = 0; arg != f->arg_end() && i < formals->NumElements(); ++i, ++arg) {
         VarDecl* parameter = formals->Nth(i);
         char* name = parameter->GetIdentifier()->GetName();
+        // llvm::Twine *twine = new llvm::Twine(name);
         arg->setName(name);
         parameter->Emit();
      }

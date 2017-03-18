@@ -1,6 +1,7 @@
 vec2 a;
+float f;
 
-float assignvec(float f) 
+float assignvec() 
 {
    float t;
    vec4 v4;

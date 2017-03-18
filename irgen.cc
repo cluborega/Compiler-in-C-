@@ -74,21 +74,49 @@ llvm::Type *IRGenerator::GetVoidType() const {
    return ty;
 }
 
-llvm::Type *IRGenerator::GetVecType(int size) const {
-  return llvm::VectorType::get(GetFloatType(), size);
+llvm::Type *IRGenerator::GetVec2Type() const {
+  return llvm::VectorType::get(GetFloatType(), 2);
 }
 
-llvm::Value *IRGenerator::ToVector(llvm::Value *value, int size) {
+llvm::Type *IRGenerator::GetVec3Type() const {
+  return llvm::VectorType::get(GetFloatType(), 3);
+}
+
+llvm::Type *IRGenerator::GetVec4Type() const {
+  return llvm::VectorType::get(GetFloatType(), 4);
+}
+
+/**
+ copy these bottom two functions over to expr.cc 
+
+8
+8
+8
+8
+8
+8
+88
+**/
+llvm::Value *IRGenerator::GetInsertInst(llvm::Value *vec, llvm::Value *elem, int idx) {
+  llvm::Value *index = llvm::ConstantInt::get(GetIntType(), idx, true);
+  return llvm::InsertElementInst::Create(vec, elem, index, "", GetBasicBlock());
+}
+
+llvm::Value *IRGenerator::GetExtractInst(llvm::Value *vec, int idx) {
+  llvm::Value *index = llvm::ConstantInt::get(GetIntType(), idx, true);
+  return llvm::ExtractElementInst::Create(vec, index, "", GetBasicBlock());
+}
+
+llvm::Value *IRGenerator::checkLLVMvec(llvm::Value *value, int size) {
   if (value->getType()->isVectorTy() == true)
     return value;
 
-  llvm::Constant* fc_ptr_zero = llvm::ConstantFP::get(GetFloatType(), 0.0);
-  vector<llvm::Constant*> contents(size, fc_ptr_zero);
+  // llvm::Constant* fc_ptr_zero = llvm::ConstantFP::get(GetFloatType(), 0.0);
+  vector<llvm::Constant*> contents(size, llvm::ConstantFP::get(GetFloatType(), 0.0));
   llvm::Value *vec = llvm::ConstantVector::get(contents);
 
   for (int i = 0; i < size; ++i) {
-    llvm::Value* index = llvm::ConstantInt::get(GetIntType(), i, true);
-    vec = llvm::InsertElementInst::Create(vec, value, index, "", GetBasicBlock());
+    vec = GetInsertInst(vec, value, i);
   }
 
   return vec;

@@ -1,16 +1,15 @@
 
-vec2 v;
 
 float foo(float a) 
 {
-  return v.x + a;
+  return 2.1 + a;
 }
 
 float bar(int a)
 {
   float t;
   if ( a > 1 )
-    t = v.y;
+    t = 3.1;
   else
     t = 0.25;
   return t;

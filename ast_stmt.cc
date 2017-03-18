@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-    mod->dump();
+    // mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -176,7 +176,33 @@ void ForStmt::PrintChildren(int indentLevel) {
 }
 
 void ForStmt::Emit(){
+    IRGenerator &irgen = IRGenerator::Instance();
+    llvm::BasicBlock *bodyBlock = irgen.CreateEmptyBlock("for-body");
+    llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("for-end");
 
+    cerr << "inside for emit "<<endl;
+
+    irgen.loopStack.push(bodyBlock);
+    irgen.breakBlockStack.push(endBlock);
+    init->Emit();
+
+    cerr << "emitting inti "<<endl;
+
+    (void)llvm::BranchInst::Create(bodyBlock, endBlock, test->getEmit(), irgen.GetBasicBlock());
+
+    irgen.SetBasicBlock(bodyBlock);
+
+    body->Emit();
+
+    if (!irgen.GetBasicBlock()->getTerminator()){
+        (void)llvm::BranchInst::Create(bodyBlock, endBlock, test->getEmit(), irgen.GetBasicBlock());
+    }
+
+    endBlock->moveAfter(irgen.GetBasicBlock());
+    irgen.SetBasicBlock(endBlock);
+
+    irgen.loopStack.pop();
+    irgen.breakBlockStack.pop();
 }
 
 
@@ -207,7 +233,7 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) {
 
 void IfStmt::Emit(){
 
-    cerr << "inside if emit "<<endl;
+    // cerr << "inside if emit "<<endl;
 
     IRGenerator &irgen = IRGenerator::Instance();
 
@@ -217,12 +243,12 @@ void IfStmt::Emit(){
     llvm::BasicBlock *endBlock = irgen.CreateEmptyBlock("footerBB");
 
     if (elseBody) {
-         cerr << "ifstmtEmit:: elsebody exists" <<endl;
+         // cerr << "ifstmtEmit:: elsebody exists" <<endl;
         block_of_else = irgen.CreateEmptyBlock("ElseBB");
         (void) llvm::BranchInst::Create(block_of_then, block_of_else, test->getEmit(), irgen.GetBasicBlock());
     }
     else {
-        cerr << "ifstmtEmit:: no else body" <<endl;
+        // cerr << "ifstmtEmit:: no else body" <<endl;
         (void) llvm::BranchInst::Create(block_of_then, endBlock, test->getEmit(), irgen.GetBasicBlock());
     }
 

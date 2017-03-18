@@ -61,6 +61,7 @@ class Type : public Node
     bool IsVector();
     bool IsMatrix();
     bool IsError();
+    string get_typeName(){return std::string(typeName);}
 };
 
 
@@ -90,6 +91,7 @@ class ArrayType : public Type
     void PrintChildren(int indentLevel);
     void PrintToStream(ostream& out) { out << elemType << "[]"; }
     Type *GetElemType() {return elemType;}
+    int GetArraySize() {return elemCount;}
 };
 
  
