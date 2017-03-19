@@ -210,6 +210,7 @@ class ArrayAccess : public LValue
     ArrayAccess(yyltype loc, Expr *base, Expr *subscript);
     const char *GetPrintNameForNode() { return "ArrayAccess"; }
     void PrintChildren(int indentLevel);
+    virtual llvm::Value* getEmit();
 };
 
 /* Note that field access is used both for qualified names
@@ -228,6 +229,7 @@ class FieldAccess : public LValue
     const char *GetPrintNameForNode() { return "FieldAccess"; }
     void PrintChildren(int indentLevel);
     Identifier *GetIdentifier() {return field;}
+    Expr *GetBase() {return base;}
     virtual llvm::Value* getEmit();
 
 };

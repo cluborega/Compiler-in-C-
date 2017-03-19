@@ -18,6 +18,7 @@
 #include "llvm/IR/Constants.h"
 
 #include <stack>
+#include <string>
 #include "ast_type.h"
 
 class IRGenerator {
@@ -44,12 +45,17 @@ class IRGenerator {
     llvm::Type *GetFloatType() const;
 
     llvm::Type *GetVoidType() const;
-    llvm::Type *GetVecType(int s) const;
+    llvm::Type *GetVec2Type() const;
+    llvm::Type *GetVec3Type() const;
+    llvm::Type *GetVec4Type() const;
+
+    llvm::Value *GetExtractInst(llvm::Value *v, int i);
+    llvm::Value *GetInsertInst(llvm::Value *v, llvm::Value *v1, int i);
 
     llvm::Value *PostFixIncrementInst(llvm::Value *value);
     llvm::Value *PostFixDecrementInst(llvm::Value *value);
     // llvm::Value *GetOpWithScalar(llvm::Value *value, char op, float scalar);
-    llvm::Value *ToVector(llvm::Value *value, int size);
+    llvm::Value *checkLLVMvec(llvm::Value *value, int size);
 
     llvm::Value *BoolVectorToBool(llvm::Value *vector);
 
@@ -63,9 +69,18 @@ class IRGenerator {
     stack<llvm::BasicBlock*> continueBlockStack;
     stack<llvm::BasicBlock*> breakBlockStack;
     stack<llvm::BasicBlock*> footerStack;
+    stack<llvm::BasicBlock*> loopStack;
+    vector<llvm::BasicBlock *> sharedBBcontainer;
 
-llvm::Type* get_ll_type(Type* t) {
+    llvm::Type* get_ll_type(Type* t) {
 // cerr << "entering get_ll_type "<<endl; 
+    // std::string intT("int");
+    // std::string floatT("float");
+    // std::string boolT("bool");
+    // std::string vec2T("vec2");
+    // std::string vec3T("vec3");
+    // std::string vec4T("vec4");
+
     if(t == Type::intType)
        return IRGenerator::GetIntType();
     else if(t == Type::boolType)
@@ -73,11 +88,11 @@ llvm::Type* get_ll_type(Type* t) {
     else if (t == Type::floatType)
         return IRGenerator::GetFloatType();
     else if (t == Type::vec2Type)
-        return IRGenerator::GetVecType(2);
+        return IRGenerator::GetVec2Type();
     else if (t == Type::vec3Type)
-        return IRGenerator::GetVecType(3);
+        return IRGenerator::GetVec3Type();
     else if (t == Type::vec4Type)
-        return IRGenerator::GetVecType(4);
+        return IRGenerator::GetVec4Type();
     else
         return NULL;
 }

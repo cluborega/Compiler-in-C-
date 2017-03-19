@@ -1,17 +1,52 @@
 //vec2 v;
-float u;
+//float u;
 
-float fortest(int a)
+float v;
+int a;
+
+
+float fortest()
 {
   int i;
-  //float sum;
-  float sum = 1.0;
+
+  float sum;
+  a = 5;
   
-  u = 10.0;
-  //sum = v.x;
+  sum = v;
   for ( i = 0; i < a; i += 1 )
-    //sum *= v.y;
-	sum *= u;
-	
+    sum *= 2.0;
+
   return sum;
 }
+
+
+/*
+void fortest()
+{
+  int i;
+
+  float sum;
+  a = 5;
+  
+  sum = v;
+  for ( i = 0; i < a; i += 1 )
+    sum *= 2.0;
+
+  return;
+  //return sum;
+}
+*/
+
+/*
+vec2 v;
+float fortest (int a)
+{
+	int i;
+	float sum;
+	sum = v.x;
+	for ( i = 0; i < a; i += 1 )
+		sum *= v.y;
+	return sum;
+}
+*/
+

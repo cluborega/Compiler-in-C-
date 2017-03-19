@@ -1,6 +1,6 @@
 vec2 v2;
-
-float foo(float f)
+float f;
+float foo()
 {
    float t;
 

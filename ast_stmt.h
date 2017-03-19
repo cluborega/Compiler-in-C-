@@ -175,6 +175,7 @@ class SwitchLabel : public Stmt
     SwitchLabel(Expr *label, Stmt *stmt);
     SwitchLabel(Stmt *stmt);
     void PrintChildren(int indentLevel);
+    Stmt *GetStmt() { return stmt; }
 
 };
 
@@ -184,6 +185,7 @@ class Case : public SwitchLabel
     Case() : SwitchLabel() {}
     Case(Expr *label, Stmt *stmt) : SwitchLabel(label, stmt) {}
     const char *GetPrintNameForNode() { return "Case"; }
+    Expr *GetLabel() { return label; }
 };
 
 class Default : public SwitchLabel
