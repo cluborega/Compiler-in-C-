@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-     //mod->dump();
+     mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
