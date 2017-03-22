@@ -203,6 +203,7 @@ llvm::Value* ArithmeticExpr::getEmit() {
         llvm::Value* tempVal = newVal;
 
         if (swizzle){
+            cerr << "is a swizzle in arithmetic" <<endl;
             newVal = swizzle->getEmit();
         }
         else if (is_var) {
@@ -221,16 +222,20 @@ llvm::Value* ArithmeticExpr::getEmit() {
         // // else if (var)
         return tempVal;
     }
-
+    cerr << "inside arith_expr, is not unary" <<endl;
     //for regular expressions 
     llvm::Value *leftValue = left->getEmit();
     llvm::Value *rightValue = right->getEmit();
 
-    if (leftValue->getType()->isVectorTy())
+    if (leftValue->getType()->isVectorTy()){
+        cerr << "left is vector type " <<endl;
         rightValue = irgen.checkLLVMvec(rightValue, leftValue->getType()->getVectorNumElements());
+    }
 
-    if (rightValue->getType()->isVectorTy())
+    if (rightValue->getType()->isVectorTy()){
+        cerr << "right is vector type " <<endl;
         leftValue = irgen.checkLLVMvec(leftValue, rightValue->getType()->getVectorNumElements());
+    }
 
      is_float_op = leftValue->getType()->isFloatTy();
 
@@ -248,8 +253,10 @@ llvm::Value* ArithmeticExpr::getEmit() {
             llvmOP = llvm::BinaryOperator::Sub;
     }
     else if (op->IsOp("*")) {
-        if (is_float_op)
+        if (is_float_op){
+            cerr << "multiplication float operator_" <<endl;
             llvmOP = llvm::BinaryOperator::FMul;
+        }
         else
             llvmOP = llvm::BinaryOperator::Mul;
     }
@@ -339,18 +346,18 @@ llvm::Value* AssignExpr::getEmit() {
     // Symbol s;
     char checkA[] = "ArrayAccess";
     const char* typeLeft = left->GetPrintNameForNode();
-
      // llvm::Value* lhs = left->getEmit();
      // llvm::Value* rhs = right->getEmit();
 
     // cerr << "in assign expr "<<endl;
 
     if (op->IsOp("=")) {
-        // cerr << "operator is = going right->emit, right = ";
+     cerr << "operator is = going right->emit, right = " <<endl;
 
         value_to_assign = right->getEmit();
+
         if(strcmp(checkA, typeLeft)==0){
-            leftAddress = left->getEmit();
+            leftAddress = left->createEmit();
             sym->value = leftAddress;
         }
         //     vecChk = false; 
@@ -391,6 +398,8 @@ llvm::Value* AssignExpr::getEmit() {
     FieldAccess *is_swizzle = dynamic_cast<FieldAccess*>(left);
     
     if (is_swizzle) {
+
+        cerr << "assign expr recognized swizzle " <<endl;
         // llvm::Value* swiz_value = is_swizzle->GetBase()->getEmit();
 
         // std::string swizzle = std::string(is_swizzle->GetIdentifier()->GetName());
@@ -421,18 +430,24 @@ llvm::Value* AssignExpr::getEmit() {
          // sym = symtab->find(is_var->GetIdentifier()->GetName());
     }
     else if (is_var) {
-        // cerr << "inside if is_var to assign ";
+         cerr << "inside if is_var to assign "; 
         // int index = symtab->tables.size() - 1; 
+
         sym = symtab->find(is_var->GetIdentifier()->GetName());
+        if(sym->value) cerr << "symbol is  " <<sym->name <<endl;
+
         llvm::Type* varType = sym->value->getType();
         // cerr << sym->name <<endl;
-        if (varType->isVectorTy())
+        if (varType->isVectorTy()){
+            cerr << "inside assign expr it is a vector type "<<endl;
             value_to_assign = irgen.checkLLVMvec(value_to_assign, varType->getVectorNumElements());
+        }
     }
-    // cerr << "symbol value is ";
-    // cerr << sym->value<<endl;
+     // cerr << "in assign expr symbol value is ";
+
     (void) new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
 
+    cerr << "outside if is_var in assignexpr after storing" <<endl;
      // VarExpr *is_var = dynamic_cast<VarExpr*>(left);
      // if (is_var) value_to_assign = left->getEmit();
     //     cerr << "in assign emit dynamic casted" << endl;
@@ -506,7 +521,6 @@ llvm::Value* ArrayAccess::getEmit(){
     IRGenerator &irgen = IRGenerator::Instance();
 
     VarExpr *baseExpr = dynamic_cast<VarExpr*>(base);
-
     // llvm::Value *llvmBase = base->getEmit();  //actual array
     // llvm::Value *index = subscript->getEmit();
 
@@ -527,8 +541,30 @@ llvm::Value* ArrayAccess::getEmit(){
     array_access.push_back(subscript->getEmit());
 
     llvm::ArrayRef<llvm::Value*> argarray(array_access);
-    llvm::Value* newVal = llvm::GetElementPtrInst::Create(symTableLook, argarray, "arrayaccess" , irgen.GetBasicBlock());
+    llvm::Value* newVal = llvm::GetElementPtrInst::Create(symTableLook, argarray, "" , irgen.GetBasicBlock());
+
+    // VarExpr *baseExpr = dynamic_cast<VarExpr*>(base);
+    //    newVal = new llvm::LoadInst(newVal, sym->name, irgen.GetBasicBlock());
+
+     llvm::Value* retval = new llvm::LoadInst(newVal, sym->name, irgen.GetBasicBlock());
     // return llvm::GetElementPtrInst::CreateInBounds(llvmBase, argarray, llvmBase->getName(), irgen.GetBasicBlock());
+    return retval;
+}
+
+llvm::Value* ArrayAccess::createEmit(){
+    IRGenerator &irgen = IRGenerator::Instance();
+
+    VarExpr *baseExpr = dynamic_cast<VarExpr*>(base);
+
+    Symbol* sym = symtab->find(baseExpr->GetIdentifier()->GetName());
+    llvm::Value* symTableLook = sym->value;
+
+    vector<llvm::Value*> array_access;
+    array_access.push_back(llvm::ConstantInt::get(irgen.GetIntType(), 0)); //index starts at 0
+    array_access.push_back(subscript->getEmit());
+
+    llvm::ArrayRef<llvm::Value*> argarray(array_access);
+    llvm::Value* newVal = llvm::GetElementPtrInst::Create(symTableLook, argarray, "" , irgen.GetBasicBlock());
     return newVal;
 }
 
@@ -547,6 +583,8 @@ void FieldAccess::PrintChildren(int indentLevel) {
 }
 
 llvm::Value* FieldAccess::getEmit() {
+
+    cerr << "inside FieldAccess"<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
 
     std::vector<llvm::Constant*> indices;
@@ -556,30 +594,38 @@ llvm::Value* FieldAccess::getEmit() {
         int index;
 
         if (swizzle.at(i) == 'x') {
+            cerr << "field access index " <<field->GetName() <<endl;
             index = 0;
             break;
         }
         else if (swizzle.at(i) == 'y') {
-            index = 0;
+            cerr << "field access index in y" <<endl;
+            index = 1;
             break;
         }
         else if (swizzle.at(i) == 'z') {
-            index = 0;
+            cerr << "field access index in z" <<endl;
+            index = 2;
             break;
         }
         else if (swizzle.at(i) == 'w') {
-            index = 0;
+            index = 3;
             break;
         }
         else
             index = 0;
 
-        indices.push_back(llvm::ConstantInt::get(IRGenerator::Instance().GetIntType(), index, true));
+        indices.push_back(llvm::ConstantInt::get(irgen.GetIntType(), index, true));
     }
 
     llvm::Value *vec = base->getEmit();
-    if (indices.size() == 1)
+    if (vec)
+        cerr << "so far vec is not null in field access "<<endl;
+    if (indices.size() == 1){
+        cerr << "ExtractElementInst index = 0 " <<endl;
         return llvm::ExtractElementInst::Create(vec, indices[0], "", irgen.GetBasicBlock());
+    }
+    cerr << "indices size is > 1" <<endl;
 
     llvm::Value *mask = llvm::ConstantVector::get(indices);
     llvm::Value *undef = llvm::UndefValue::get(vec->getType());
@@ -600,4 +646,23 @@ void Call::PrintChildren(int indentLevel) {
    if (field) field->Print(indentLevel+1);
    if (actuals) actuals->PrintAll(indentLevel+1, "(actuals) ");
 }
+
+llvm::Value* Call::getEmit() {
+    IRGenerator &irgen = IRGenerator::Instance();
+    std::vector<llvm::Value*> argTypes;
+    Symbol* sym = new Symbol();
+
+    sym = symtab->find(field->GetName());
+
+    for(int i = 0; i < actuals->NumElements(); i++) {
+        argTypes.push_back(actuals->Nth(i)->getEmit());
+    }
+
+    llvm::ArrayRef<llvm::Value*> argArray(argTypes);
+
+    llvm::Value* llvm_val = sym->value;
+
+    return llvm::CallInst::Create(llvm_val, argArray, "", irgen.GetBasicBlock());
+}
+
 

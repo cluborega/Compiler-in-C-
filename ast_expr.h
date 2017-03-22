@@ -38,6 +38,7 @@ class Expr : public Stmt
 
     virtual llvm::Value* getEmit() { return NULL; }
     virtual void Emit() { (void) getEmit(); }
+    virtual llvm::Value* createEmit(){return NULL;}
 };
 
 class ExprError : public Expr
@@ -211,6 +212,7 @@ class ArrayAccess : public LValue
     const char *GetPrintNameForNode() { return "ArrayAccess"; }
     void PrintChildren(int indentLevel);
     virtual llvm::Value* getEmit();
+    virtual llvm::Value* createEmit();
 };
 
 /* Note that field access is used both for qualified names
@@ -250,6 +252,7 @@ class Call : public Expr
     Call(yyltype loc, Expr *base, Identifier *field, List<Expr*> *args);
     const char *GetPrintNameForNode() { return "Call"; }
     void PrintChildren(int indentLevel);
+    virtual llvm::Value* getEmit();
 };
 
 class ActualsError : public Call

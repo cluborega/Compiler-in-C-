@@ -48,6 +48,10 @@ class IRGenerator {
     llvm::Type *GetVec3Type() const;
     llvm::Type *GetVec4Type() const;
 
+    llvm::Constant *GetConstantFloat(float val);
+
+    llvm::Value *GetZeroVector(int size);
+
     llvm::Value *GetExtractInst(llvm::Value *v, int i);
     llvm::Value *GetInsertInst(llvm::Value *v, llvm::Value *v1, int i);
 
