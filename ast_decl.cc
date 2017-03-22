@@ -73,6 +73,7 @@ void FnDecl::PrintChildren(int indentLevel) {
 
 void VarDecl::Emit(){
 
+	cerr << "vardecl - emit\n";
     IRGenerator &irgen = IRGenerator::Instance();
     llvm::Module *mod = irgen.GetOrCreateModule("foo.bc");
 
@@ -88,9 +89,10 @@ void VarDecl::Emit(){
         // cerr << "declaring array " << name << "size " << arr_type->GetArraySize()<<endl;
         ll_type =  llvm::ArrayType::get(irgen.get_ll_type(arr_type->GetElemType()), arr_type->GetArraySize());
     }
-
-
+	
     llvm::Function *fun = irgen.GetFunction();
+	
+	cerr << "vardecl - get function"<< endl;
 
     if(!fun){
         llvm::GlobalVariable *llvm_Gl_var = llvm::cast<llvm::GlobalVariable>(mod->getOrInsertGlobal(name, ll_type));
@@ -107,6 +109,8 @@ void VarDecl::Emit(){
         // cerr << "inserted symbol ";
         // cerr << sym->name << endl;
     }
+	
+	cerr << "end of vardecl emit\n";
 }
 
 void FnDecl::Emit() {
@@ -121,6 +125,8 @@ void FnDecl::Emit() {
 
         argTypes.push_back(irgen.get_ll_type(argType));
     }
+	
+	cerr << "Push back formals\n";
 
     llvm::ArrayRef<llvm::Type *> argArray(argTypes);
     llvm::Type *retType = irgen.get_ll_type(returnType);
@@ -131,6 +137,8 @@ void FnDecl::Emit() {
     irgen.SetFunction(f);
     Symbol* sym = new Symbol(this->GetIdentifier()->GetName(), this, E_FunctionDecl, f);
     symtab->insert(*sym);
+	
+	cerr << "insert into symtab\n";
   
     // insert a block into the runction
     llvm::LLVMContext *context = irgen.GetContext();
@@ -138,7 +146,7 @@ void FnDecl::Emit() {
     irgen.SetBasicBlock(entry_bb);
 
     //push a new scope
-    // symtab->push();
+    //symtab->push();
 
     llvm::Function::arg_iterator arg = f->arg_begin();
     // add formal parameters into scope
@@ -164,6 +172,10 @@ void FnDecl::Emit() {
 
     // cerr << "inside funcdecl going body emit now "<<endl;
     body->Emit();
+	
+	cerr << "called body emit\n";
 
     llvm::BranchInst *branch = llvm::BranchInst::Create(next_bb, entry_bb);
+	
+	cerr << "after branch\n";
  }
