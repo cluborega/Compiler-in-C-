@@ -116,17 +116,20 @@ llvm::Value *IRGenerator::GetInsertInst(llvm::Value *vec, llvm::Value *elem, int
 }
 
 llvm::Value *IRGenerator::GetExtractInst(llvm::Value *vec, int idx) {
-  llvm::Value *index = llvm::ConstantInt::get(GetIntType(), idx, true);
-  return llvm::ExtractElementInst::Create(vec, index, "", GetBasicBlock());
+  // llvm::Value *index = llvm::ConstantInt::get(GetIntType(), idx, true);
+  return llvm::ExtractElementInst::Create(vec, llvm::ConstantInt::get(GetIntType(), idx, true), "", GetBasicBlock());
 }
 
 llvm::Value *IRGenerator::checkLLVMvec(llvm::Value *value, int size) {
   if (value->getType()->isVectorTy())
     return value;
 
+  // cerr << "inside checkLLVMvec " <<endl;
   llvm::Value *vec = GetZeroVector(size);
-  for (int i = 0; i < size; ++i)
+  for (int i = 0; i < size; ++i){
+    cerr << "in checkLLVMvec. i = " << i <<endl;
      vec = GetInsertInst(vec, value, i);
+  }
 
    // cerr << "inside checkLLVMvec " <<endl;
   return vec;
@@ -136,6 +139,8 @@ llvm::Value *IRGenerator::BoolVectorToBool(llvm::Value *vector) {
   IRGenerator &irgen = IRGenerator::Instance();
 
   llvm::Value* idx = llvm::ConstantInt::get(GetIntType(), 0, true);
+
+  // cerr << "in BoolVectorToBool calling ExtractElementInst "<<endl;
 
   llvm::Value *andResult = llvm::ExtractElementInst::Create(vector, llvm::ConstantInt::get(GetIntType(), 0, true), "", GetBasicBlock());
     //llvm::ExtractElementInst::Create(vec, index, "", GetBasicBlock());

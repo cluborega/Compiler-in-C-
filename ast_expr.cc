@@ -204,7 +204,7 @@ llvm::Value* ArithmeticExpr::getEmit() {
 
         if (swizzle){
             // cerr << "is a swizzle in arithmetic" <<endl;
-            newVal = swizzle->getEmit();
+             newVal = swizzle->getEmit();
         }
         else if (is_var) {
             // int index = symtab->tables.size() - 1; 
@@ -213,8 +213,9 @@ llvm::Value* ArithmeticExpr::getEmit() {
 
             if (varType->isVectorTy()){
                 tempVal = irgen.checkLLVMvec(newVal, varType->getVectorNumElements());
-                newVal = new llvm::StoreInst(tempVal, sym->value, true, irgen.GetBasicBlock());
+                newVal = tempVal; //new llvm::StoreInst(tempVal, sym->value, true, irgen.GetBasicBlock());
             }
+            // cerr << "storing volatile " <<endl;
             (void)new llvm::StoreInst(newVal, sym->value, true, irgen.GetBasicBlock());
 
         }
@@ -397,17 +398,18 @@ llvm::Value* AssignExpr::getEmit() {
     
     if (is_swizzle) {
 
-        // cerr << "assign expr recognized swizzle " <<endl;
+         cerr << "assign expr recognized swizzle " <<endl;
 
-        llvm::Value* swiz_value = is_swizzle->GetBase()->getEmit();
+        llvm::Value* swiz_value = static_cast<VarExpr*>(is_swizzle->GetBase())->getEmit();
 
         std::string swizzle = std::string(is_swizzle->GetIdentifier()->GetName());
 
         if (!value_to_assign->getType()->isVectorTy())
             value_to_assign = irgen.checkLLVMvec(value_to_assign, swizzle.length());
 
-        for (int i = 0; i < value_to_assign->getType()->getVectorNumElements(); ++i) {
+        for (int i = 0; i < value_to_assign->getType()->getVectorNumElements(); i++) {
             int replaceAt;
+            cerr << "vector index eleme " << i <<" " << swizzle.at(i)<<endl;
             switch (swizzle.at(i)) {
                 case 'x': replaceAt = 0; break;
                 case 'y': replaceAt = 1; break;
@@ -415,11 +417,14 @@ llvm::Value* AssignExpr::getEmit() {
                 case 'w': replaceAt = 3; break;
                 default: replaceAt = -1;
             }
-            if (replaceAt >= 0) {
-                llvm::Value *newElem = irgen.GetExtractInst(value_to_assign, i);
-                swiz_value = irgen.GetInsertInst(swiz_value, newElem, replaceAt);
-                sym->value = newElem;
-            }
+            swiz_value = irgen.GetInsertInst(value_to_assign, )
+            // if (replaceAt >= 0) {
+            //      cerr << "calling ExtractElementInst " <<endl;
+            //     llvm::Value *newElem = irgen.GetExtractInst(value_to_assign, i);
+            //      cerr<< "calling GetInsertInst" <<endl;
+            //     swiz_value = irgen.GetInsertInst(swiz_value, newElem, replaceAt);
+            //     sym->value = newElem;
+            // }
         }
 
         // (void) new llvm::StoreInst(swiz_value, sym->value, false, irgen.GetBasicBlock());
@@ -589,7 +594,7 @@ llvm::Value* FieldAccess::getEmit() {
     std::vector<llvm::Constant*> indices;
     std::string swizzle = std::string(field->GetName());
 
-    for (unsigned int i = 0; i < swizzle.length(); ++i) {
+    for (int i = 0; i < swizzle.length(); i++) {
         int index;
 
         if (swizzle.at(i) == 'x') {
@@ -617,17 +622,17 @@ llvm::Value* FieldAccess::getEmit() {
     if (vec)
         // cerr << "so far vec is not null in field access "<<endl;
     if (indices.size() == 1){
-        // cerr << "ExtractElementInst index = 0 " <<endl;
+         // cerr << "ExtractElementInst index = 0 " <<endl;
         return llvm::ExtractElementInst::Create(vec, indices[0], "", irgen.GetBasicBlock());
     }
     // cerr << "indices size is > 1" <<endl;
-
-    llvm::Value *mask = llvm::ConstantVector::get(indices);
+    llvm::ArrayRef<llvm::Constant *> mask(indices);
+    // llvm::Value *masked = llvm::ConstantVector::get(mask);
     llvm::Value *undef = llvm::UndefValue::get(vec->getType());
 
     // cerr << "return ShuffleVectorInst " <<endl;
 
-    return new llvm::ShuffleVectorInst(vec, undef, mask, "", irgen.GetBasicBlock());
+    return new llvm::ShuffleVectorInst(vec, undef, llvm::ConstantVector::get(mask), "", irgen.GetBasicBlock());
 }
 
 Call::Call(yyltype loc, Expr *b, Identifier *f, List<Expr*> *a) : Expr(loc)  {

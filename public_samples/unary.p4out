@@ -7,7 +7,6 @@ target triple = "x86_64-redhat-linux-gnu"
 define float @unary(float %f) {
 entry:
   %arg0 = alloca float
-  %t = alloca float
   br label %next
 
 next:                                             ; preds = %entry
@@ -15,27 +14,9 @@ next:                                             ; preds = %entry
   %0 = load float* %arg0
   %1 = fadd float %0, 1.000000e+00
   store volatile float %1, float* %arg0
-  store float %1, float* %t
-  %2 = load float* %t
-  %3 = fsub float %2, 1.000000e+00
-  store volatile float %3, float* %t
-  %4 = load <2 x float>* @a
-  %5 = insertelement <2 x float> %4, float %3, i32 0
-  store volatile <2 x float> %5, <2 x float>* @a
-  %6 = load float* %t
-  %7 = fadd float %6, 1.000000e+00
-  store volatile float %7, float* %t
-  %8 = load <2 x float>* @a
-  %9 = insertelement <2 x float> %8, float %7, i32 1
-  store volatile <2 x float> %9, <2 x float>* @a
-  %10 = load <2 x float>* @a
-  %11 = extractelement <2 x float> %10, i32 0
-  %12 = load <2 x float>* @a
-  %13 = extractelement <2 x float> %12, i32 1
-  %14 = fadd float %11, %13
-  %15 = load float* %arg0
-  %16 = fsub float %15, 1.000000e+00
-  store volatile float %16, float* %arg0
-  %17 = fadd float %14, %15
-  ret float %17
+  %2 = load <2 x float>* @a
+  %3 = insertelement <2 x float> %2, float %1, i32 0
+  store volatile <2 x float> %3, <2 x float>* @a
+  %4 = load float* %arg0
+  ret float %4
 }
