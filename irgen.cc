@@ -86,6 +86,10 @@ llvm::Type *IRGenerator::GetVec4Type() const {
   return llvm::VectorType::get(GetFloatType(), 4);
 }
 
+llvm::Constant *IRGenerator::GetConstantInt(int val) {
+  return llvm::ConstantInt::get(GetIntType(), val, true);
+}
+
 llvm::Constant *IRGenerator::GetConstantFloat(float val) {
   return llvm::ConstantFP::get(GetFloatType(), val);
 }

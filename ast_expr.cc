@@ -392,39 +392,38 @@ llvm::Value* AssignExpr::getEmit() {
             // if (sym)
                 // value_to_assign = new llvm::StoreInst(value_to_assign, sym->value, false, irgen.GetBasicBlock());
     }
-
-
-    VarExpr *is_var = dynamic_cast<VarExpr*>(left);
     FieldAccess *is_swizzle = dynamic_cast<FieldAccess*>(left);
+    VarExpr *is_var = dynamic_cast<VarExpr*>(left);
     
     if (is_swizzle) {
 
         cerr << "assign expr recognized swizzle " <<endl;
-        // llvm::Value* swiz_value = is_swizzle->GetBase()->getEmit();
+        
+        llvm::Value* swiz_value = is_swizzle->GetBase()->getEmit();
 
-        // std::string swizzle = std::string(is_swizzle->GetIdentifier()->GetName());
+        std::string swizzle = std::string(is_swizzle->GetIdentifier()->GetName());
 
-        // if (!value_to_assign->getType()->isVectorTy())
-        //     value_to_assign = irgen.checkLLVMvec(value_to_assign, swizzle.length());
+        if (!value_to_assign->getType()->isVectorTy())
+            value_to_assign = irgen.checkLLVMvec(value_to_assign, swizzle.length());
 
-        // for (int i = 0; i < value_to_assign->getType()->getVectorNumElements(); ++i) {
-        //     int replaceAt;
-        //     switch (swizzle.at(i)) {
-        //         case 'x': replaceAt = 0; break;
-        //         case 'y': replaceAt = 1; break;
-        //         case 'z': replaceAt = 2; break;
-        //         case 'w': replaceAt = 3; break;
-        //         default: replaceAt = -1;
-        //     }
-        //     if (replaceAt >= 0) {
-        //         llvm::Value *newElem = irgen.GetExtractInst(value_to_assign, i);
-        //         swiz_value = irgen.GetInsertInst(swiz_value, newElem, replaceAt);
-        //         sym->value = newElem;
-        //     }
-        // }
+        for (int i = 0; i < value_to_assign->getType()->getVectorNumElements(); ++i) {
+            int replaceAt;
+            switch (swizzle.at(i)) {
+                case 'x': replaceAt = 0; break;
+                case 'y': replaceAt = 1; break;
+                case 'z': replaceAt = 2; break;
+                case 'w': replaceAt = 3; break;
+                default: replaceAt = -1;
+            }
+            if (replaceAt >= 0) {
+                llvm::Value *newElem = irgen.GetExtractInst(value_to_assign, i);
+                swiz_value = irgen.GetInsertInst(swiz_value, newElem, replaceAt);
+                sym->value = newElem;
+            }
+        }
 
-        // // (void) new llvm::StoreInst(swiz_value, sym->value, false, irgen.GetBasicBlock());
-        // value_to_assign = swiz_value;
+        // (void) new llvm::StoreInst(swiz_value, sym->value, false, irgen.GetBasicBlock());
+        value_to_assign = swiz_value;
 
         // int index = symtab->tables.size() - 1; 
          // sym = symtab->find(is_var->GetIdentifier()->GetName());
@@ -590,7 +589,7 @@ llvm::Value* FieldAccess::getEmit() {
     std::vector<llvm::Constant*> indices;
     std::string swizzle = std::string(field->GetName());
 
-    for (int i = 0; i < swizzle.length(); ++i) {
+    for (unsigned int i = 0; i < swizzle.length(); ++i) {
         int index;
 
         if (swizzle.at(i) == 'x') {
@@ -615,7 +614,7 @@ llvm::Value* FieldAccess::getEmit() {
         else
             index = 0;
 
-        indices.push_back(llvm::ConstantInt::get(irgen.GetIntType(), index, true));
+        indices.push_back(irgen.GetConstantInt(index));
     }
 
     llvm::Value *vec = base->getEmit();
@@ -629,6 +628,8 @@ llvm::Value* FieldAccess::getEmit() {
 
     llvm::Value *mask = llvm::ConstantVector::get(indices);
     llvm::Value *undef = llvm::UndefValue::get(vec->getType());
+
+    cerr << "return ShuffleVectorInst " <<endl;
 
     return new llvm::ShuffleVectorInst(vec, undef, mask, "", irgen.GetBasicBlock());
 }
