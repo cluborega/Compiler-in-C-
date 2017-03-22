@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-   mod->dump();
+   //mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -402,7 +402,7 @@ void ReturnStmt::PrintChildren(int indentLevel) {
 }
 
 void ReturnStmt::Emit(){
-    cerr << "inside ReturnStmt "<<endl;
+    // cerr << "inside ReturnStmt "<<endl;
     IRGenerator *irgen = &(IRGenerator::Instance());
     if (expr == NULL)
         llvm::ReturnInst::Create(*irgen->GetContext(), irgen->GetBasicBlock());

@@ -128,7 +128,7 @@ llvm::Value *IRGenerator::checkLLVMvec(llvm::Value *value, int size) {
   for (int i = 0; i < size; ++i)
      vec = GetInsertInst(vec, value, i);
 
-   cerr << "inside checkLLVMvec " <<endl;
+   // cerr << "inside checkLLVMvec " <<endl;
   return vec;
 }
 
