@@ -480,7 +480,7 @@ void SwitchStmt::Emit(){
 
     // (void) llvm::UnreachableInst::UnreachableInst(irgen.GetContext(), endblock)
 
-  // irgen.breakBlockStack.pop();
+  irgen.breakBlockStack.pop();
 
 }
 
