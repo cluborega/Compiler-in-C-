@@ -62,7 +62,7 @@ class IRGenerator {
     // llvm::Value *GetOpWithScalar(llvm::Value *value, char op, float scalar);
     llvm::Value *checkLLVMvec(llvm::Value *value, int size);
 
-    llvm::Value *BoolVectorToBool(llvm::Value *vector);
+    llvm::Value *checkVecAndBool(llvm::Value *vector);
 
     // llvm::Type* get_ll_type(Type* t);
     // llvm::Type *GetVec3Type() const;

@@ -65,12 +65,6 @@ SymbolTable::SymbolTable(){
 	funcFlag = false;
 	breakFlag = false;
 	
-	/*
-	map<const char*, Symbol*> s1;
-	vector<ScopedTable*> scope;
-	tables = scope;
-	tables.push_back(s1);
-	*/
 	this->push();
 	//global scope
 	//ScopedTable *globalScope = new ScopedTable();
@@ -106,18 +100,6 @@ void SymbolTable::insert(Symbol &sym){
 	//cout << "size of symboltable "<<tables.size()<<endl;
 	ScopedTable *st = tables.back();
 	st->insert(sym);
-
-	/*
-	cout<< "in symboltable insert with " << sym.name<<endl;;
-	int size = tables.size()-1;
-	
-	if(size< 0){
-		cout <<"\nERROR: table SIZE < 0\n";
-		return;
-	}
-	
-	tables[size]->insert(sym);
-	*/
 }
 
 void SymbolTable::remove(Symbol &sym){
@@ -127,12 +109,10 @@ void SymbolTable::remove(Symbol &sym){
 		tables[size]->remove(sym);
 	}
 }
-// check for redeclaration -> currentScope, but for assignment expression, check for all scopes
+
 Symbol* SymbolTable::find(const char *name) {
 	//Symbol* symbol;
 	int currentScope = tables.size() - 1;
-	//cout << " finding in symtable " << name << endl;
-	//cout << "symboltable size = " << tables.size() <<endl;
 
 	
 		for (int i  = currentScope; i >= 0; i--){
@@ -140,24 +120,13 @@ Symbol* SymbolTable::find(const char *name) {
 			Symbol* temp = tables[i]->find(name);
 			if (temp != NULL)
 				return temp;
-			//if ((symbol->name).compare(name) == 0){ //when they are qqual
-/*
-			if (symbol != NULL){
-				cout << "symbol = " << symbol << endl;
-*/
-				//cout << "return non-null symbol from symtable find "<<endl;
-				//return symbol;
-			//}
 		}
-	// }
 	
-	//cout << "return NULL from SymbolTable - find"<<endl;
 	return NULL;
 }
 
 bool MyStack::insideLoop(){
 	if (!stmtStack.empty() ){//&& stmtStack.front() == <dynamic_cast>Type::){///&& stmtStack.top() == <dynamic_cast>){
-		//stmtStack.pop_back(); // remove top of the stack
 		
 		return true;
 	}

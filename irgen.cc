@@ -99,17 +99,6 @@ llvm::Value *IRGenerator::GetZeroVector(int size) {
   return llvm::ConstantVector::get(contents);
 }
 
-/**
- copy these bottom two functions over to expr.cc 
-
-8
-8
-8
-8
-8
-8
-88
-**/
 llvm::Value *IRGenerator::GetInsertInst(llvm::Value *vec, llvm::Value *elem, int idx) {
   // llvm::Value *index = llvm::ConstantInt::get(GetIntType(), idx, true);
   return llvm::InsertElementInst::Create(vec, elem, llvm::ConstantInt::get(GetIntType(), idx, true), "", GetBasicBlock());
@@ -127,7 +116,6 @@ llvm::Value *IRGenerator::checkLLVMvec(llvm::Value *value, int size) {
   // cerr << "inside checkLLVMvec " <<endl;
   llvm::Value *vec = GetZeroVector(size);
   for (int i = 0; i < size; ++i){
-    cerr << "in checkLLVMvec. i = " << i <<endl;
      vec = GetInsertInst(vec, value, i);
   }
 
@@ -135,12 +123,12 @@ llvm::Value *IRGenerator::checkLLVMvec(llvm::Value *value, int size) {
   return vec;
 }
 
-llvm::Value *IRGenerator::BoolVectorToBool(llvm::Value *vector) {
+llvm::Value *IRGenerator::checkVecAndBool(llvm::Value *vector) {
   IRGenerator &irgen = IRGenerator::Instance();
 
   llvm::Value* idx = llvm::ConstantInt::get(GetIntType(), 0, true);
 
-  // cerr << "in BoolVectorToBool calling ExtractElementInst "<<endl;
+  // cerr << "in checkVecAndBool calling ExtractElementInst "<<endl;
 
   llvm::Value *andResult = llvm::ExtractElementInst::Create(vector, llvm::ConstantInt::get(GetIntType(), 0, true), "", GetBasicBlock());
     //llvm::ExtractElementInst::Create(vec, index, "", GetBasicBlock());
@@ -190,25 +178,6 @@ llvm::Value *IRGenerator::PostFixDecrementInst(llvm::Value *value) {
 
   return llvm::BinaryOperator::Create(op, value, scalarVal, "", GetBasicBlock());
 }
-
-// llvm::Value *IRGenerator::PreNegativeInst(llvm::Value *value) {
-//   llvm::Type *valType = value->getType();
-//   bool is_float_op = valType->isFloatTy() || valType->isVectorTy();
-//   llvm::BinaryOperator::BinaryOps op;
-//   int scalar = -1;
-
-//   llvm::Value *scalarVal;
-//   if (is_float_op){
-//     op = llvm::BinaryOperator::FMul;
-//     scalarVal = llvm::ConstantFP::get(GetFloatType(), scalar);
-//   } 
-//   else{
-//     op = llvm::BinaryOperator::Mul;
-//     scalarVal = llvm::ConstantInt::get(GetIntType(), (int)scalar, true);
-//   }
-
-//   return llvm::BinaryOperator::Create(op, value, scalarVal, "", GetBasicBlock());
-// }
 
 const char *IRGenerator::TargetLayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128";
 

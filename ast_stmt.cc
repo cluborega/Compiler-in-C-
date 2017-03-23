@@ -82,7 +82,7 @@ void Program::Emit() {
 
     //uncomment the next line to generate the human readable/assembly file
     // mod->dump();
-   mod->dump();
+   //mod->dump();
 }
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
@@ -115,7 +115,6 @@ bool StmtBlock::hasReturn() {
 }
 
 void StmtBlock::Emit() {
-    // cerr << " getting inside stmt block "<<endl;
     IRGenerator &irgen = IRGenerator::Instance();
     
     symtab->push(); //creates a new scope
@@ -135,19 +134,6 @@ void StmtBlock::Emit() {
         if (!irgen.GetBasicBlock()->getTerminator())
             (void) new llvm::UnreachableInst(*(irgen.GetContext()), irgen.GetBasicBlock());
     }
-    /*
-      For each element 'a' in formals:
-      Create local variable (as in VarDecl::Emit)
-      VarDecl emit should take it to AllocalInst in the else block
-    */
-
-    // cerr << "in stmtblock emit" <<endl;
-
-        // cerr << "i am global " <<endl;
-        // cerr << symtab->tables.size()<<endl;
-    //     cerr << "gets here " <<endl;
-    //     (void) new llvm::UnreachableInst(*(irgen.GetContext()), irgen.GetBasicBlock());
-    // }
 
     symtab->pop(); //delete current scope
 
@@ -254,9 +240,6 @@ void ForStmt::Emit(){
     }
     
     irgen->SetBasicBlock(fb);
-    
-    
-    
     /*
     //check for terminator instruction
     llvm::BasicBlock *curPos = irgen->GetBasicBlock();
@@ -314,8 +297,6 @@ void WhileStmt::Emit(){
         
         llvm::BranchInst::Create(hb, irgen->GetBasicBlock());
     }
-    
-        
     irgen->breakBlockStack.pop();
     irgen->continueBlockStack.pop();
     
@@ -342,9 +323,6 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) {
 }
 
 void IfStmt::Emit(){
-
-    // cerr << "inside if emit "<<endl;
-
     IRGenerator &irgen = IRGenerator::Instance();
 
     //create basicblocks for if and else 
@@ -457,11 +435,7 @@ void SwitchStmt::Emit(){
       ++numCases;
   }
 
-  llvm::SwitchInst *switchInst = llvm::SwitchInst::Create(expr->getEmit(), 
-                                                          defaultBlock, 
-                                                          numCases,
-                                                          irgen.GetBasicBlock()); 
-
+  llvm::SwitchInst *switchInst = llvm::SwitchInst::Create(expr->getEmit(), defaultBlock, numCases, irgen.GetBasicBlock());
 
   for (int i = 0; i < cases->NumElements(); ++i) {
     Case *caseStmt = dynamic_cast<Case*>(cases->Nth(i));
@@ -493,7 +467,6 @@ void SwitchStmt::Emit(){
 
   if (!defaultBlock->getTerminator())
     (void) llvm::BranchInst::Create(endBlock, defaultBlock);
-
 
   endBlock->moveAfter(irgen.GetBasicBlock());
   irgen.SetBasicBlock(endBlock);
